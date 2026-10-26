@@ -2,13 +2,13 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "esModuleInterop": true
   },
   "include": ["server", "api"],
   "exclude": ["node_modules"]
