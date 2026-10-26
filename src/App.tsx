@@ -38,7 +38,8 @@ export default function App() {
       </nav>
 
       <main className="main">
-        {tab === 'analyze' ? <QueryAnalyzer /> : <AgentScanner />}
+        <div style={{ display: tab === 'analyze' ? 'block' : 'none' }}><QueryAnalyzer /></div>
+        <div style={{ display: tab === 'agent' ? 'block' : 'none' }}><AgentScanner /></div>
       </main>
 
       <footer className="footer">
