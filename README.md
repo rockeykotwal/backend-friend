@@ -117,20 +117,27 @@ docker run -p 3000:3000 -e META_MODEL_API_KEY=your_key_here backend-friend
 
 ## Architecture
 
+The project is intentionally split so the core application has zero platform dependencies.
+
 ```
 backend-friend/
-├── server/
-│   ├── app.ts              # Express app — shared by all deploy targets
-│   ├── index.ts            # Self-hosting entry (npm start)
-│   ├── _client.ts          # Meta Model API client
-│   ├── _prompt.ts          # System prompts
+├── server/                 # ← The entire application lives here
+│   ├── app.ts              #   Express app — no Vercel, no platform code, runs anywhere
+│   ├── index.ts            #   Standalone entry: node server/index.ts (or npm start)
+│   ├── _client.ts          #   Meta Model API client
+│   ├── _prompt.ts          #   System prompts for Muse Spark / Muse Wonder
 │   └── routes/
-│       ├── analyze.ts      # POST /api/analyze — single query analysis
-│       ├── agent.ts        # POST /api/agent   — agentic codebase scan
-│       ├── transcribe.ts   # POST /api/transcribe — voice input
-│       └── visualize.ts    # POST /api/visualize — execution plan image
+│       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming)
+│       ├── agent.ts        #   POST /api/agent      — agentic codebase scan (streaming)
+│       ├── transcribe.ts   #   POST /api/transcribe — voice input via Muse Voice
+│       └── visualize.ts    #   POST /api/visualize  — execution plan image via Muse Image
+│
 ├── api/
-│   └── index.ts            # Vercel entry — thin wrapper over server/app.ts
+│   └── index.ts            #   ⚠️  Vercel-only. 5 lines. Just imports server/app.ts.
+│                           #   Vercel requires serverless functions to live in api/ — this
+│                           #   file exists solely to satisfy that convention. If you are
+│                           #   deploying anywhere other than Vercel, ignore this folder.
+│
 └── src/                    # React/Vite frontend
 ```
 
