@@ -68,28 +68,6 @@ vercel
 
 Set `META_MODEL_API_KEY` in your Vercel project environment variables. Vercel serves the frontend from CDN and routes `/api/*` to Express serverless — no other config needed.
 
-### Deploy to Railway
-
-1. Push to GitHub
-2. Create a new Railway project → Deploy from GitHub repo
-3. Add environment variable: `META_MODEL_API_KEY`
-4. Railway auto-detects `npm start` and runs it
-
-### Deploy to Render
-
-1. New Web Service → connect GitHub repo
-2. Build command: `npm run build`
-3. Start command: `npm start`
-4. Add environment variable: `META_MODEL_API_KEY`
-
-### Deploy to Fly.io
-
-```bash
-fly launch
-fly secrets set META_MODEL_API_KEY=your_key_here
-fly deploy
-```
-
 ### Deploy with Docker
 
 ```dockerfile
