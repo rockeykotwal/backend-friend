@@ -1,20 +1,65 @@
 const SKIP_PATTERNS = [
   /\.(test|spec)\.(ts|tsx|js|jsx)$/,
   /\.d\.ts$/,
-  /\/(migrations?|migrate|seeds?|generated|__generated__)\//i,
-  /\.(migration|seed|generated)\./i,
+  /\/(migrations?|migrate|seeds?|generated|__generated__|fixtures)\//i,
+  /\.(migration|seed|generated|fixture)\./i,
 ]
 
 const ORM_PATTERNS = [
-  // Prisma
-  /\.(findMany|findFirst|findUnique|findUniqueOrThrow|findFirstOrThrow|create|createMany|update|updateMany|upsert|delete|deleteMany|aggregate|groupBy|count)\s*\(/,
-  // TypeORM
-  /\.(find|findOne|findBy|findOneBy|findAndCount|findAndCountBy|save|insert|update|delete|remove|createQueryBuilder|getRepository|getManager)\s*\(/,
-  // Sequelize
-  /\.(findAll|findOne|findByPk|findOrCreate|bulkCreate|upsert|destroy|update|count|sum|max|min)\s*\(/,
-  // Drizzle
-  /\bdb\.(select|insert|update|delete|query)\b/,
-  /\.(leftJoin|innerJoin|rightJoin|fullJoin|where|groupBy|orderBy|limit|offset)\s*\(/,
+  // Prisma — findMany, findFirst, findUnique, create, update, upsert, delete, aggregate, $queryRaw
+  /\.(findMany|findFirst|findUnique|findUniqueOrThrow|findFirstOrThrow|create|createMany|createManyAndReturn|update|updateMany|upsert|delete|deleteMany|aggregate|groupBy|count|\$queryRaw|\$executeRaw|\$transaction)\s*\(/,
+
+  // TypeORM — repository methods, query builder, entity manager
+  /\.(findOne|findBy|findOneBy|findAndCount|findAndCountBy|findOneOrFail|save|insert|update|delete|remove|softDelete|restore|recover|count|sum|average|minimum|maximum|increment|decrement|createQueryBuilder|getRepository|getManager|getConnection)\s*\(/,
+
+  // Sequelize — model static methods
+  /\.(findAll|findOne|findByPk|findOrCreate|findOrBuild|findAndCountAll|findCreateFind|bulkCreate|upsert|create|update|destroy|restore|count|sum|max|min|increment|decrement)\s*\(/,
+
+  // Drizzle — db.select / insert / update / delete / query / transaction
+  /\bdb\.(select|insert|update|delete|query|transaction|execute|run|get|all)\b/,
+  /\.(selectFrom|insertInto|updateTable|deleteFrom)\s*\(/,
+
+  // MikroORM — entity manager
+  /\bem\.(find|findOne|findOneOrFail|findAndCount|findAll|persist|flush|remove|nativeInsert|nativeUpdate|nativeDelete|count|aggregate|createQueryBuilder)\s*\(/,
+  /\bqb\.(select|where|andWhere|orWhere|leftJoin|innerJoin|groupBy|orderBy|limit|offset|getResult|getSingleResult|getCount|execute)\s*\(/,
+
+  // Mongoose — model queries and chainable methods
+  /\.(find|findOne|findById|findByIdAndUpdate|findByIdAndDelete|findByIdAndRemove|findOneAndUpdate|findOneAndDelete|findOneAndReplace|findOneAndRemove)\s*\(/,
+  /\.(insertMany|create|updateOne|updateMany|replaceOne|deleteOne|deleteMany|bulkWrite|aggregate|countDocuments|estimatedDocumentCount|distinct|populate)\s*\(/,
+
+  // Knex — query builder
+  /\bknex\s*\(|\.knex\s*\(/,
+  /\.(table|from|join|leftJoin|leftOuterJoin|rightJoin|innerJoin|crossJoin|whereIn|whereNotIn|whereNull|whereNotNull|whereBetween|whereExists)\s*\(/,
+
+  // Kysely — type-safe query builder
+  /\.(selectFrom|insertInto|updateTable|deleteFrom|selectAll|executeTakeFirst|executeTakeFirstOrThrow|execute)\s*\(/,
+
+  // Objection.js — built on Knex
+  /Model\.query\s*\(|\.query\s*\(\s*trx|\.withGraphFetched\s*\(|\.withGraphJoined\s*\(|\.joinRelated\s*\(|\.insertGraph\s*\(|\.upsertGraph\s*\(/,
+
+  // Waterline (Sails.js)
+  /\.(find|findOne|create|createEach|update|updateOne|destroy|destroyOne|count|sum|avg)\s*\(\s*\{/,
+
+  // Bookshelf
+  /new\s+\w+Model\s*\(\)|\.forge\s*\(|\.fetchAll\s*\(|\.fetch\s*\(|\.save\s*\(|\.destroy\s*\(/,
+
+  // Generic — raw SQL via tagged templates or query methods
+  /\$\{.*?(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)/i,
+  /`\s*(SELECT|INSERT|UPDATE|DELETE)\s+/i,
+]
+
+export const SUPPORTED_ORMS = [
+  'Prisma',
+  'TypeORM',
+  'Sequelize',
+  'Drizzle',
+  'MikroORM',
+  'Mongoose',
+  'Knex',
+  'Kysely',
+  'Objection.js',
+  'Waterline',
+  'Bookshelf',
 ]
 
 const CONTEXT_LINES = 8

@@ -1,7 +1,11 @@
 .scanner { display: flex; flex-direction: column; gap: 20px; }
 
 .scanner-intro h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-.scanner-intro p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+.scanner-intro p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
+
+.orm-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.orm-list-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 2px; }
+.orm-chip { font-size: 11px; font-weight: 500; padding: 2px 8px; background: rgba(47,129,247,0.1); color: var(--accent); border: 1px solid rgba(47,129,247,0.2); border-radius: 4px; }
 
 .file-row { display: flex; gap: 12px; align-items: center; }
 

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
-import { extractOrmBlocks } from '../utils/extractOrmBlocks'
+import { extractOrmBlocks, SUPPORTED_ORMS } from '../utils/extractOrmBlocks'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -98,7 +98,13 @@ export default function AgentScanner() {
     <div className="scanner">
       <div className="scanner-intro">
         <h2>Scan Your Codebase</h2>
-        <p>Select your source files. The agent will find every ORM query, analyse them all, and return a prioritised fix list — critical issues first.</p>
+        <p>Select your project folder. The agent extracts every ORM query, analyses them all, and returns a prioritised fix list — critical issues first.</p>
+        <div className="orm-list">
+          <span className="orm-list-label">Supports</span>
+          {SUPPORTED_ORMS.map(orm => (
+            <span key={orm} className="orm-chip">{orm}</span>
+          ))}
+        </div>
       </div>
 
       <div className="file-row">
