@@ -13,6 +13,12 @@ export interface Finding {
   impact_estimate: string
 }
 
+// Strip markdown code fences the model occasionally adds despite being told not to
+function cleanJson(raw: string): string {
+  const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  return m ? m[1] : raw.trim()
+}
+
 export default function QueryAnalyzer() {
   const [query, setQuery] = useState('')
   const [schema, setSchema] = useState('')
@@ -46,12 +52,13 @@ export default function QueryAnalyzer() {
         const lines = decoder.decode(value).split('\n')
         for (const line of lines) {
           if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
-          const { text } = JSON.parse(line.slice(6))
-          rawRef.current += text
+          const payload = JSON.parse(line.slice(6))
+          if (payload.error) throw new Error(payload.error)
+          rawRef.current += payload.text
         }
       }
 
-      const finding: Finding = JSON.parse(rawRef.current)
+      const finding: Finding = JSON.parse(cleanJson(rawRef.current))
       setResult(finding)
       generateVisual(finding)
     } catch (err) {
@@ -91,7 +98,7 @@ export default function QueryAnalyzer() {
             className="code-input"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={`// Paste your Prisma, TypeORM, or Sequelize query\nconst users = await prisma.user.findMany({\n  include: { posts: true }\n})`}
+            placeholder={`// Paste your ORM query — Prisma, Django, GORM, TypeORM, SQLAlchemy...\nconst users = await prisma.user.findMany({\n  include: { posts: true }\n})`}
             rows={8}
           />
         </div>
@@ -102,7 +109,7 @@ export default function QueryAnalyzer() {
             className="code-input"
             value={schema}
             onChange={e => setSchema(e.target.value)}
-            placeholder={`// Paste your Prisma schema, TypeORM entities, or SQL DDL\nmodel User {\n  id    Int    @id\n  posts Post[]\n}`}
+            placeholder={`// Paste your schema — Prisma schema, Django models, SQLAlchemy models, SQL DDL...\nmodel User {\n  id    Int    @id\n  posts Post[]\n}`}
             rows={8}
           />
         </div>

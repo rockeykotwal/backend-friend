@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { metaClient, MODELS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
 
-const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|getRepository|selectFrom|insertInto|updateTable|deleteFrom|em\.(find|persist|flush)|Model\.query|\$queryRaw|\$executeRaw/i
+const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|getRepository|selectFrom|insertInto|updateTable|deleteFrom|em\.(find|persist|flush)|Model\.query|\$queryRaw|\$executeRaw|session\.(query|execute)|db\.session|\.objects\.(filter|get|all|create|update|delete)|joinedload|subqueryload|selectinload|select_related|prefetch_related|cursor\.execute|db\.(Find|First|Where|Preload|Joins|Create|Save|Delete|Count|Query|QueryRow|Get|Select|NamedExec)\(|NewSelect\(|NewInsert\(|createQuery\(|@Query|@Select|@Insert|@Update|@Delete|ActiveRecord|\$em->|\$qb->|DbContext|ToListAsync|FromSqlRaw|diesel::|sqlx::query|SeaORM|Entity::find|collection\.(find|find_one|insert_one|update_one|delete_one|aggregate|Find|FindOne|InsertOne|UpdateOne|DeleteOne|Aggregate)\(|MongoEngine|pymongo|motor\.motor/i
 
 export async function agentHandler(req: Request, res: Response) {
   const { files } = req.body as { files: Array<{ path: string; content: string }> }
@@ -41,6 +41,11 @@ export async function agentHandler(req: Request, res: Response) {
     res.end()
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Agent scan failed'
-    res.status(500).json({ error: message })
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`)
+      res.end()
+    } else {
+      res.status(500).json({ error: message })
+    }
   }
 }

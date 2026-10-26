@@ -1,8 +1,14 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
-import { extractOrmBlocks, SUPPORTED_ORMS } from '../utils/extractOrmBlocks'
+import { extractOrmBlocks, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
 import './AgentScanner.css'
+
+// Strip markdown code fences the model occasionally adds despite being told not to
+function cleanJson(raw: string): string {
+  const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  return m ? m[1] : raw.trim()
+}
 
 interface AgentFinding extends Finding {
   file: string
@@ -27,12 +33,16 @@ export default function AgentScanner() {
     rawRef.current = ''
     setProgress('Reading files...')
 
-    const sourceFiles = Array.from(files).filter(f =>
-      /\.(ts|tsx|js|jsx)$/.test(f.name) && !f.webkitRelativePath.includes('node_modules')
-    )
+    const sourceFiles = Array.from(files).filter(f => {
+      const path = f.webkitRelativePath || f.name
+      return /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/.test(f.name)
+        && !path.includes('node_modules')
+        && !path.includes('/vendor/')
+        && !path.includes('/target/')
+    })
 
     if (!sourceFiles.length) {
-      setError('No source files found. Make sure the folder contains .ts / .js / .tsx files.')
+      setError('No source files found. Make sure the folder contains backend source files (.py, .go, .ts, .js, .java, .rb, .php, .cs, .rs).')
       setLoading(false)
       return
     }
@@ -43,13 +53,12 @@ export default function AgentScanner() {
       sourceFiles.map(async f => ({ path: f.webkitRelativePath || f.name, content: await f.text() }))
     )
 
-    // extract only ORM query blocks — skip test/migration/seed files
     const extracted = rawContents
       .map(f => extractOrmBlocks(f.path, f.content))
       .filter(Boolean) as NonNullable<ReturnType<typeof extractOrmBlocks>>[]
 
     if (!extracted.length) {
-      setError('No ORM queries detected. Backend Friend supports Prisma, TypeORM, Sequelize, and Drizzle.')
+      setError('No ORM queries detected. Backend Friend supports SQLAlchemy, Django ORM, GORM, Prisma, TypeORM, Hibernate, ActiveRecord, Eloquent, Entity Framework, and more.')
       setLoading(false)
       return
     }
@@ -75,16 +84,15 @@ export default function AgentScanner() {
         const lines = decoder.decode(value).split('\n')
         for (const line of lines) {
           if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
-          const { text } = JSON.parse(line.slice(6))
-          rawRef.current += text
+          const payload = JSON.parse(line.slice(6))
+          if (payload.error) throw new Error(payload.error)
+          rawRef.current += payload.text
         }
       }
 
-      const parsed: AgentFinding[] = JSON.parse(rawRef.current)
-      const sorted = parsed.sort((a, b) => {
-        const order = { critical: 0, high: 1, medium: 2, low: 3 }
-        return order[a.severity] - order[b.severity]
-      })
+      const parsed: AgentFinding[] = JSON.parse(cleanJson(rawRef.current))
+      const order = { critical: 0, high: 1, medium: 2, low: 3 }
+      const sorted = parsed.sort((a, b) => order[a.severity] - order[b.severity])
       setFindings(sorted)
       setProgress('')
     } catch (err) {
@@ -99,11 +107,20 @@ export default function AgentScanner() {
       <div className="scanner-intro">
         <h2>Scan Your Codebase</h2>
         <p>Select your project folder. The agent extracts every ORM query, analyses them all, and returns a prioritised fix list — critical issues first.</p>
-        <div className="orm-list">
-          <span className="orm-list-label">Supports</span>
-          {SUPPORTED_ORMS.map(orm => (
-            <span key={orm} className="orm-chip">{orm}</span>
-          ))}
+
+        <div className="lang-support">
+          <div className="orm-list">
+            <span className="orm-list-label">Full depth</span>
+            {LANGUAGE_GROUPS.filter(g => g.depth === 'full').map(g => (
+              <span key={g.language} className="lang-chip" title={g.orms.join(', ')}>{g.language}</span>
+            ))}
+          </div>
+          <div className="orm-list">
+            <span className="orm-list-label">Roadmap</span>
+            {LANGUAGE_GROUPS.filter(g => g.depth === 'roadmap').map(g => (
+              <span key={g.language} className="lang-chip lang-chip--roadmap" title={g.orms.join(', ')}>{g.language}</span>
+            ))}
+          </div>
         </div>
       </div>
 

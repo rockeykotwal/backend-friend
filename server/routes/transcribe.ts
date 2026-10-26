@@ -14,9 +14,11 @@ export async function transcribeHandler(req: Request, res: Response) {
       file: audioFile
     })
 
+    if (!transcription.text) return res.status(200).json({ text: '' })
     res.status(200).json({ text: transcription.text })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Transcription failed'
-    res.status(500).json({ error: message })
+    // Transcription failing is non-fatal — return empty text so the UI degrades gracefully
+    res.status(200).json({ text: '', error: message })
   }
 }

@@ -1,6 +1,6 @@
 # Backend Friend
 
-**ESLint for your database queries.** AI-powered ORM query analyzer that finds N+1 problems, missing indexes, and overfetching in your Prisma, TypeORM, and Sequelize code — and gives you the fixed ORM code back.
+**ESLint for your database queries.** AI-powered ORM query analyzer that finds N+1 problems, missing indexes, and overfetching across Node.js, Python, and Go codebases — and gives you the fixed ORM code back.
 
 Built for the Meta Global AI Developer Hackathon 2026 by [Rockey Kotwal](https://rockeykotwal.in/).
 
@@ -27,6 +27,32 @@ If you have 500 users, this runs **501 database queries** — one to fetch users
 **Backend Friend works at the ORM level** — where you actually write code. It understands your schema, reads your Prisma/TypeORM/Sequelize queries, and gives you back fixed ORM code and a migration script. Not a SQL explanation. The actual fix, ready to paste.
 
 The problem is universal across every language and every ORM. Backend Friend starts with Node.js — the most widely used backend runtime — and the architecture is built to extend.
+
+---
+
+## Language & ORM Support
+
+### Full depth
+
+Full-depth means: smart block extraction (only ORM code is sent to the model, not your whole file), accurate SQL/query representation, fixed code returned in your language, and migration scripts when indexes are needed.
+
+| Language | SQL / Query Builders | NoSQL |
+|---|---|---|
+| **Node.js** | Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Knex, Kysely, Objection.js, Waterline, Bookshelf | Mongoose, MongoDB native driver |
+| **Python** | SQLAlchemy (1.x + 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel | PyMongo, Motor, MongoEngine |
+| **Go** | GORM, sqlx, Ent, bun, database/sql, sqlc | mongo-go-driver |
+
+### In the pipeline
+
+These languages are detected and their queries are extracted — the AI will identify and analyse them — but the extraction heuristics and prompt tuning are not yet optimised for each ecosystem. Results may be less precise.
+
+| Language | SQL ORMs |
+|---|---|
+| **Java / Kotlin** | Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ |
+| **Ruby** | ActiveRecord, Sequel |
+| **PHP** | Eloquent (Laravel), Doctrine |
+| **C#** | Entity Framework Core, Dapper |
+| **Rust** | Diesel, SQLx, SeaORM |
 
 ---
 

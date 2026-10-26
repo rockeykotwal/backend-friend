@@ -1,3 +1,6 @@
+.voice-wrap { display: inline-flex; align-items: center; gap: 6px; }
+.voice-error { font-size: 11px; color: var(--critical); }
+
 .voice-btn {
   background: var(--surface);
   border: 1px solid var(--border);

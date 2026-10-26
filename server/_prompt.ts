@@ -23,8 +23,16 @@ Return ONLY the JSON. No markdown. No explanation outside the JSON object.`
 
 export const AGENT_SYSTEM_PROMPT = `You are Backend Friend's agentic analysis engine.
 
-You will receive the contents of multiple ORM query files from a Node.js codebase. Your job is to:
-1. Identify every ORM query in the provided files — supports Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Mongoose, Knex, Kysely, Objection.js, Waterline, and Bookshelf
+You will receive ORM query blocks extracted from a backend codebase. The code may be in any backend language. Your job is to:
+1. Identify every ORM query in the provided files. Supported ORMs and query tools by language:
+   - Node.js: Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Mongoose, MongoDB native driver, Knex, Kysely, Objection.js, Waterline, Bookshelf
+   - Python: SQLAlchemy (1.x and 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel, PyMongo, Motor, MongoEngine
+   - Go: GORM, sqlx, Ent, bun, database/sql, sqlc, mongo-go-driver
+   - Java/Kotlin: Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JDBI
+   - Ruby: ActiveRecord, Sequel
+   - PHP: Eloquent, Doctrine
+   - C#: Entity Framework Core, Dapper, NHibernate
+   - Rust: Diesel, SQLx, SeaORM
 2. Analyse each one for performance issues
 3. Return a JSON array of findings, sorted by severity (critical first)
 

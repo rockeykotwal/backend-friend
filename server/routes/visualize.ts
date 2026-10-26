@@ -26,10 +26,12 @@ Style: dark background, minimal, technical, developer-friendly. No decorative el
       model: MODELS.image,
       prompt,
       n: 1,
-      size: '1792x1024'
+      size: '1024x1024'
     })
 
-    res.status(200).json({ url: response.data?.[0]?.url ?? null })
+    const item = response.data?.[0]
+    const url = item?.url ?? (item?.b64_json ? `data:image/png;base64,${item.b64_json}` : null)
+    res.status(200).json({ url })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Visualisation failed'
     res.status(500).json({ error: message })

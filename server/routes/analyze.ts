@@ -34,6 +34,11 @@ export async function analyzeHandler(req: Request, res: Response) {
     res.end()
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Analysis failed'
-    res.status(500).json({ error: message })
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`)
+      res.end()
+    } else {
+      res.status(500).json({ error: message })
+    }
   }
 }
