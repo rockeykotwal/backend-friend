@@ -15,7 +15,7 @@ A developer will give you an ORM query and their schema. You must analyse the qu
 Detect these issues (in priority order):
 1. N+1 queries — ORM calls inside loops, missing eager loading
 2. Missing indexes — columns used in WHERE/JOIN/ORDER BY with no index
-3. Overfetching — SELECT * when only specific columns needed
+3. Overfetching — SELECT * when only specific columns are needed
 4. Missing pagination — queries on unbounded large tables
 5. Inefficient JOINs — queries that could use indexed foreign keys
 

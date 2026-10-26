@@ -11,5 +11,3 @@ export const MODELS = {
   image: 'muse-image-1.0',
   voice: 'muse-voice-transcribe-1.0'
 } as const
-
-export const SPARK_TOKEN_LIMIT = 80_000

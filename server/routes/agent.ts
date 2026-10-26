@@ -1,14 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { metaClient, MODELS } from './_client'
-import { AGENT_SYSTEM_PROMPT } from './_prompt'
-
-export const config = { maxDuration: 60 }
+import type { Request, Response } from 'express'
+import { metaClient, MODELS } from '../_client'
+import { AGENT_SYSTEM_PROMPT } from '../_prompt'
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|findMany|findOne|findAll|createQueryBuilder|getRepository/i
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
+export async function agentHandler(req: Request, res: Response) {
   const { files } = req.body as { files: Array<{ path: string; content: string }> }
   if (!files?.length) return res.status(400).json({ error: 'files array is required' })
 
@@ -19,14 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4
   const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
 
-  try {
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.setHeader('X-Files-Scanned', String(files.length))
-    res.setHeader('X-Orm-Files-Found', String(ormFiles.length))
-    res.setHeader('X-Model-Used', model)
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Files-Scanned', String(files.length))
+  res.setHeader('X-Orm-Files-Found', String(ormFiles.length))
+  res.setHeader('X-Model-Used', model)
 
+  try {
     const stream = await metaClient.chat.completions.create({
       model,
       messages: [

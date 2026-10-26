@@ -1,11 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { metaClient, MODELS } from './_client'
+import type { Request, Response } from 'express'
+import { metaClient, MODELS } from '../_client'
 
-export const config = { maxDuration: 60 }
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
+export async function transcribeHandler(req: Request, res: Response) {
   const { audio } = req.body as { audio: string }
   if (!audio) return res.status(400).json({ error: 'audio (base64) is required' })
 

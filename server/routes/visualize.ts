@@ -1,11 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { metaClient, MODELS } from './_client'
+import type { Request, Response } from 'express'
+import { metaClient, MODELS } from '../_client'
 
-export const config = { maxDuration: 60 }
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
-
+export async function visualizeHandler(req: Request, res: Response) {
   const { problem, fix, impact } = req.body as { problem: string; fix: string; impact: string }
   if (!problem || !fix) return res.status(400).json({ error: 'problem and fix are required' })
 
@@ -33,7 +29,7 @@ Style: dark background, minimal, technical, developer-friendly. No decorative el
       size: '1792x1024'
     })
 
-    res.status(200).json({ url: response.data[0].url })
+    res.status(200).json({ url: response.data?.[0]?.url ?? null })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Visualisation failed'
     res.status(500).json({ error: message })
