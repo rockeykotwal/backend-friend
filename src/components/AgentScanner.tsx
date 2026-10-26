@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
+import { extractOrmBlocks, SUPPORTED_ORMS } from '../utils/extractOrmBlocks'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -26,31 +27,44 @@ export default function AgentScanner() {
     rawRef.current = ''
     setProgress('Reading files...')
 
-    const tsFiles = Array.from(files).filter(f =>
-      f.name.endsWith('.ts') || f.name.endsWith('.js') || f.name.endsWith('.tsx')
+    const sourceFiles = Array.from(files).filter(f =>
+      /\.(ts|tsx|js|jsx)$/.test(f.name) && !f.webkitRelativePath.includes('node_modules')
     )
 
-    if (!tsFiles.length) {
-      setError('No .ts / .js / .tsx files found in selection')
+    if (!sourceFiles.length) {
+      setError('No source files found. Make sure the folder contains .ts / .js / .tsx files.')
       setLoading(false)
       return
     }
 
-    const fileContents = await Promise.all(
-      tsFiles.map(async f => ({ path: f.name, content: await f.text() }))
+    setProgress(`Reading ${sourceFiles.length} files...`)
+
+    const rawContents = await Promise.all(
+      sourceFiles.map(async f => ({ path: f.webkitRelativePath || f.name, content: await f.text() }))
     )
 
-    setProgress(`Scanning ${fileContents.length} files for ORM queries...`)
+    // extract only ORM query blocks — skip test/migration/seed files
+    const extracted = rawContents
+      .map(f => extractOrmBlocks(f.path, f.content))
+      .filter(Boolean) as NonNullable<ReturnType<typeof extractOrmBlocks>>[]
+
+    if (!extracted.length) {
+      setError('No ORM queries detected. Backend Friend supports Prisma, TypeORM, Sequelize, and Drizzle.')
+      setLoading(false)
+      return
+    }
+
+    const totalOriginal = rawContents.reduce((s, f) => s + f.content.split('\n').length, 0)
+    const totalExtracted = extracted.reduce((s, f) => s + f.extractedLines, 0)
+
+    setProgress(`Found ORM queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
 
     try {
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: fileContents })
+        body: JSON.stringify({ files: extracted.map(f => ({ path: f.path, content: f.content })) })
       })
-
-      const ormCount = res.headers.get('X-Orm-Files-Found')
-      if (ormCount) setProgress(`Found ORM queries in ${ormCount} files — analysing...`)
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
@@ -84,7 +98,13 @@ export default function AgentScanner() {
     <div className="scanner">
       <div className="scanner-intro">
         <h2>Scan Your Codebase</h2>
-        <p>Select your source files. The agent will find every ORM query, analyse them all, and return a prioritised fix list — critical issues first.</p>
+        <p>Select your project folder. The agent extracts every ORM query, analyses them all, and returns a prioritised fix list — critical issues first.</p>
+        <div className="orm-list">
+          <span className="orm-list-label">Supports</span>
+          {SUPPORTED_ORMS.map(orm => (
+            <span key={orm} className="orm-chip">{orm}</span>
+          ))}
+        </div>
       </div>
 
       <div className="file-row">
@@ -92,10 +112,11 @@ export default function AgentScanner() {
           <input
             type="file"
             multiple
-            accept=".ts,.js,.tsx"
+            // @ts-ignore — webkitdirectory is non-standard but supported in all major browsers
+            webkitdirectory=""
             onChange={e => setFiles(e.target.files)}
           />
-          {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select source files'}
+          {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select folder'}
         </label>
         <button className="btn-scan" onClick={scan} disabled={loading || !files?.length}>
           {loading ? 'Scanning...' : 'Scan'}

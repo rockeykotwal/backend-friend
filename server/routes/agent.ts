@@ -2,7 +2,7 @@ import type { Request, Response } from 'express'
 import { metaClient, MODELS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
 
-const ORM_PATTERNS = /prisma|typeorm|sequelize|findMany|findOne|findAll|createQueryBuilder|getRepository/i
+const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|getRepository|selectFrom|insertInto|updateTable|deleteFrom|em\.(find|persist|flush)|Model\.query|\$queryRaw|\$executeRaw/i
 
 export async function agentHandler(req: Request, res: Response) {
   const { files } = req.body as { files: Array<{ path: string; content: string }> }
