@@ -2,7 +2,7 @@
 
 **ESLint for your database queries.** AI-powered ORM query analyzer that finds N+1 problems, missing indexes, and overfetching in your Prisma, TypeORM, and Sequelize code — and gives you the fixed ORM code back.
 
-Built for the Meta Global AI Developer Hackathon 2026 by Rockey Kotwal.
+Built for the Meta Global AI Developer Hackathon 2026 by [Rockey Kotwal](https://rockeykotwal.in/).
 
 ## What it does
 
