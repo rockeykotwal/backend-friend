@@ -129,8 +129,8 @@ backend-friend/
 │       ├── agent.ts        #   POST /api/agent   — agentic codebase scan
 │       ├── transcribe.ts   #   POST /api/transcribe — voice input
 │       └── visualize.ts    #   POST /api/visualize — execution plan image
-├── adapters/               # Deployment adapters (optional, platform-specific)
-│   └── vercel.ts           #   Thin Vercel serverless wrapper over server/app.ts
+├── api/
+│   └── index.ts            # Vercel entry point (required by Vercel convention — 5 lines, imports server/app.ts)
 └── src/                    # React/Vite frontend
 ```
 

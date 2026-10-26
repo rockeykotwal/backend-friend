@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["server", "adapters"],
+  "include": ["server", "api"],
   "exclude": ["node_modules"]
 }

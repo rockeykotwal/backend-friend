@@ -2,9 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "adapters/vercel.ts": { "maxDuration": 60 }
+    "api/index.ts": { "maxDuration": 60 }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/adapters/vercel" }
+    { "source": "/api/:path*", "destination": "/api/index" }
   ]
 }
