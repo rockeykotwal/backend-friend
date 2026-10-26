@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
+import { extractOrmBlocks } from '../utils/extractOrmBlocks'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -36,21 +37,34 @@ export default function AgentScanner() {
       return
     }
 
-    const fileContents = await Promise.all(
+    setProgress(`Reading ${sourceFiles.length} files...`)
+
+    const rawContents = await Promise.all(
       sourceFiles.map(async f => ({ path: f.webkitRelativePath || f.name, content: await f.text() }))
     )
 
-    setProgress(`Scanning ${fileContents.length} files for ORM queries...`)
+    // extract only ORM query blocks — skip test/migration/seed files
+    const extracted = rawContents
+      .map(f => extractOrmBlocks(f.path, f.content))
+      .filter(Boolean) as NonNullable<ReturnType<typeof extractOrmBlocks>>[]
+
+    if (!extracted.length) {
+      setError('No ORM queries detected. Backend Friend supports Prisma, TypeORM, Sequelize, and Drizzle.')
+      setLoading(false)
+      return
+    }
+
+    const totalOriginal = rawContents.reduce((s, f) => s + f.content.split('\n').length, 0)
+    const totalExtracted = extracted.reduce((s, f) => s + f.extractedLines, 0)
+
+    setProgress(`Found ORM queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
 
     try {
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: fileContents })
+        body: JSON.stringify({ files: extracted.map(f => ({ path: f.path, content: f.content })) })
       })
-
-      const ormCount = res.headers.get('X-Orm-Files-Found')
-      if (ormCount) setProgress(`Found ORM queries in ${ormCount} files — analysing...`)
 
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
