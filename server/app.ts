@@ -1,9 +1,9 @@
 import express from 'express'
 import cors from 'cors'
-import { analyzeHandler } from './routes/analyze'
-import { agentHandler } from './routes/agent'
-import { transcribeHandler } from './routes/transcribe'
-import { visualizeHandler } from './routes/visualize'
+import { analyzeHandler } from './routes/analyze.js'
+import { agentHandler } from './routes/agent.js'
+import { transcribeHandler } from './routes/transcribe.js'
+import { visualizeHandler } from './routes/visualize.js'
 
 const app = express()
 

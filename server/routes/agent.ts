@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client'
-import { AGENT_SYSTEM_PROMPT } from '../_prompt'
+import { metaClient, MODELS } from '../_client.js'
+import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|findMany|findOne|findAll|createQueryBuilder|getRepository/i
 
