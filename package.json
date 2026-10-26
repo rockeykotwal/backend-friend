@@ -2,6 +2,7 @@
   "name": "backend-friend",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:ui\"",
     "dev:api": "tsx watch server/index.ts",

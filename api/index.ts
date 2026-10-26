@@ -2,6 +2,6 @@
 // This file is intentionally thin. All application logic is in server/.
 // For non-Vercel deployments (Docker, VPS, etc.) this file is never used — run: npm start
 import 'dotenv/config'
-import app from '../server/app'
+import app from '../server/app.js'
 
 export default app

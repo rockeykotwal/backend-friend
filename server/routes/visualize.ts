@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client'
+import { metaClient, MODELS } from '../_client.js'
 
 export async function visualizeHandler(req: Request, res: Response) {
   const { problem, fix, impact } = req.body as { problem: string; fix: string; impact: string }

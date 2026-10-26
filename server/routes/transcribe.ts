@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client'
+import { metaClient, MODELS } from '../_client.js'
 
 export async function transcribeHandler(req: Request, res: Response) {
   const { audio } = req.body as { audio: string }

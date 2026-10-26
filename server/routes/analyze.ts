@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client'
-import { ANALYSIS_SYSTEM_PROMPT } from '../_prompt'
+import { metaClient, MODELS } from '../_client.js'
+import { ANALYSIS_SYSTEM_PROMPT } from '../_prompt.js'
 
 export async function analyzeHandler(req: Request, res: Response) {
   const { query, schema } = req.body as { query: string; schema: string }
