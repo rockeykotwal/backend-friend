@@ -1,0 +1,54 @@
+.result { display: flex; flex-direction: column; gap: 20px; margin-top: 8px; }
+
+.result-header { display: flex; flex-direction: column; gap: 8px; }
+
+.severity-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 4px; letter-spacing: 0.1em; width: fit-content;
+}
+.severity-critical { background: rgba(248,81,73,0.15); color: var(--critical); }
+.severity-high { background: rgba(227,179,65,0.15); color: var(--high); }
+.severity-medium { background: rgba(47,129,247,0.15); color: var(--medium); }
+.severity-low { background: rgba(63,185,80,0.15); color: var(--low); }
+
+.problem { font-size: 18px; font-weight: 600; color: var(--text); }
+
+.impact-chip {
+  font-size: 13px; color: var(--low); font-weight: 500;
+}
+
+.explanation { color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+.code-sections { display: flex; flex-direction: column; gap: 12px; }
+
+.code-section { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+.variant-bad { border-color: rgba(248,81,73,0.3); }
+.variant-good { border-color: rgba(63,185,80,0.3); }
+.variant-neutral { border-color: var(--border); }
+
+.section-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+}
+
+.section-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.copy-btn {
+  font-size: 11px; padding: 3px 10px;
+  background: var(--surface); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 4px; font-weight: 500;
+}
+
+pre {
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.visual { display: flex; flex-direction: column; gap: 10px; }
+.visual-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.visual img { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); }

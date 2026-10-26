@@ -1,0 +1,67 @@
+.scanner { display: flex; flex-direction: column; gap: 20px; }
+
+.scanner-intro h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.scanner-intro p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+.file-row { display: flex; gap: 12px; align-items: center; }
+
+.file-picker {
+  display: inline-flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px;
+  cursor: pointer; font-size: 13px; color: var(--muted);
+  transition: border-color 0.15s;
+}
+.file-picker:hover { border-color: var(--accent); color: var(--text); }
+.file-picker input { display: none; }
+
+.btn-scan { background: var(--accent); color: #fff; }
+
+.progress {
+  font-size: 13px; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.error {
+  background: rgba(248,81,73,0.1); border: 1px solid var(--critical);
+  border-radius: var(--radius); color: var(--critical); padding: 12px 16px; font-size: 13px;
+}
+
+.findings-summary {
+  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted);
+}
+
+.summary-chip {
+  font-size: 11px; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; text-transform: capitalize;
+}
+.summary-chip.severity-critical { background: rgba(248,81,73,0.15); color: var(--critical); }
+.summary-chip.severity-high { background: rgba(227,179,65,0.15); color: var(--high); }
+.summary-chip.severity-medium { background: rgba(47,129,247,0.15); color: var(--medium); }
+.summary-chip.severity-low { background: rgba(63,185,80,0.15); color: var(--low); }
+
+.findings-list { display: flex; flex-direction: column; gap: 4px; }
+
+.finding-row {
+  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+}
+
+.finding-header {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: var(--surface); color: var(--text);
+  padding: 12px 16px; text-align: left; border-radius: 0; font-weight: 400;
+}
+
+.severity-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.severity-dot.severity-critical { background: var(--critical); }
+.severity-dot.severity-high { background: var(--high); }
+.severity-dot.severity-medium { background: var(--medium); }
+.severity-dot.severity-low { background: var(--low); }
+
+.finding-file { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex-shrink: 0; }
+.finding-problem { flex: 1; font-size: 13px; }
+.finding-chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+
+.finding-detail { padding: 20px; border-top: 1px solid var(--border); }

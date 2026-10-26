@@ -1,0 +1,21 @@
+.voice-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+
+.voice-btn.recording {
+  background: rgba(248,81,73,0.1);
+  border-color: var(--critical);
+  color: var(--critical);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}

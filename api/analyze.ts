@@ -1,0 +1,44 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { metaClient, MODELS } from './_client'
+import { ANALYSIS_SYSTEM_PROMPT } from './_prompt'
+
+export const config = { maxDuration: 60 }
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  const { query, schema } = req.body as { query: string; schema: string }
+  if (!query || !schema) return res.status(400).json({ error: 'query and schema are required' })
+
+  try {
+    const userContent = `ORM Query:\n\`\`\`\n${query}\n\`\`\`\n\nSchema:\n\`\`\`\n${schema}\n\`\`\``
+
+    const inputTokenEstimate = (userContent.length + ANALYSIS_SYSTEM_PROMPT.length) / 4
+    const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
+
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    res.setHeader('X-Model-Used', model)
+
+    const stream = await metaClient.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: ANALYSIS_SYSTEM_PROMPT },
+        { role: 'user', content: userContent }
+      ],
+      stream: true
+    })
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content ?? ''
+      if (text) res.write(`data: ${JSON.stringify({ text })}\n\n`)
+    }
+
+    res.write('data: [DONE]\n\n')
+    res.end()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Analysis failed'
+    res.status(500).json({ error: message })
+  }
+}
