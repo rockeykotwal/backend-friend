@@ -4,6 +4,32 @@
 
 Built for the Meta Global AI Developer Hackathon 2026 by [Rockey Kotwal](https://rockeykotwal.in/).
 
+## The Problem
+
+Every backend engineer, regardless of language, uses an ORM. Prisma, TypeORM, and Sequelize in Node.js. SQLAlchemy and Django ORM in Python. Hibernate in Java. GORM in Go. ActiveRecord in Ruby. Entity Framework in C#.
+
+ORMs make development fast — but they hide what's actually happening at the database level. And that's where production incidents are born.
+
+**The N+1 problem** is the most common and most expensive. It looks innocent in code:
+
+```typescript
+// Looks fine. Feels fine. Destroys your database.
+const users = await prisma.user.findMany()
+for (const user of users) {
+  const posts = await prisma.post.findMany({ where: { userId: user.id } })
+}
+```
+
+If you have 500 users, this runs **501 database queries** — one to fetch users, one per user to fetch posts. At 10,000 requests per minute, that's **5 million extra queries per minute**. Connection pool exhausted. Response times spike. App goes down.
+
+**The tools that exist today don't help at the right moment.** pganalyze, EverSQL, pgMustard — they analyse raw SQL from query logs, after the damage is done. They show you the problem in database terms. They don't know you're using Prisma. They can't give you the fixed ORM code. You still have to translate the diagnosis back into your codebase manually.
+
+**Backend Friend works at the ORM level** — where you actually write code. It understands your schema, reads your Prisma/TypeORM/Sequelize queries, and gives you back fixed ORM code and a migration script. Not a SQL explanation. The actual fix, ready to paste.
+
+The problem is universal across every language and every ORM. Backend Friend starts with Node.js — the most widely used backend runtime — and the architecture is built to extend.
+
+---
+
 ## What it does
 
 - **Analyze a single query** — paste your ORM query + schema, get severity badge + explanation + SQL being generated + fixed ORM code + migration script
