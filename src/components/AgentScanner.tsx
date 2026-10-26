@@ -26,18 +26,18 @@ export default function AgentScanner() {
     rawRef.current = ''
     setProgress('Reading files...')
 
-    const tsFiles = Array.from(files).filter(f =>
-      f.name.endsWith('.ts') || f.name.endsWith('.js') || f.name.endsWith('.tsx')
+    const sourceFiles = Array.from(files).filter(f =>
+      /\.(ts|tsx|js|jsx)$/.test(f.name) && !f.webkitRelativePath.includes('node_modules')
     )
 
-    if (!tsFiles.length) {
-      setError('No .ts / .js / .tsx files found in selection')
+    if (!sourceFiles.length) {
+      setError('No source files found. Make sure the folder contains .ts / .js / .tsx files.')
       setLoading(false)
       return
     }
 
     const fileContents = await Promise.all(
-      tsFiles.map(async f => ({ path: f.name, content: await f.text() }))
+      sourceFiles.map(async f => ({ path: f.webkitRelativePath || f.name, content: await f.text() }))
     )
 
     setProgress(`Scanning ${fileContents.length} files for ORM queries...`)
@@ -92,10 +92,11 @@ export default function AgentScanner() {
           <input
             type="file"
             multiple
-            accept=".ts,.js,.tsx"
+            // @ts-ignore — webkitdirectory is non-standard but supported in all major browsers
+            webkitdirectory=""
             onChange={e => setFiles(e.target.files)}
           />
-          {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select source files'}
+          {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select folder'}
         </label>
         <button className="btn-scan" onClick={scan} disabled={loading || !files?.length}>
           {loading ? 'Scanning...' : 'Scan'}
