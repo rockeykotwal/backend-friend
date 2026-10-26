@@ -52,7 +52,7 @@ The problem is universal across every language and every ORM. Backend Friend sta
 npx backend-friend check
 ```
 
-Or use the web app at [backend-friend.vercel.app](https://backend-friend.vercel.app)
+Or use the web app at [backend-friend.rockeykotwal.in](https://backend-friend.rockeykotwal.in/)
 
 ---
 
