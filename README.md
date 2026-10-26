@@ -119,18 +119,18 @@ docker run -p 3000:3000 -e META_MODEL_API_KEY=your_key_here backend-friend
 
 ```
 backend-friend/
-├── server/
-│   ├── app.ts              # Express app — shared by all deploy targets
-│   ├── index.ts            # Self-hosting entry (npm start)
-│   ├── _client.ts          # Meta Model API client
-│   ├── _prompt.ts          # System prompts
+├── server/                 # Core — framework-agnostic Express app
+│   ├── app.ts              #   Express app, shared by all deploy targets
+│   ├── index.ts            #   Self-hosting entry (npm start)
+│   ├── _client.ts          #   Meta Model API client
+│   ├── _prompt.ts          #   System prompts
 │   └── routes/
-│       ├── analyze.ts      # POST /api/analyze — single query analysis
-│       ├── agent.ts        # POST /api/agent   — agentic codebase scan
-│       ├── transcribe.ts   # POST /api/transcribe — voice input
-│       └── visualize.ts    # POST /api/visualize — execution plan image
-├── api/
-│   └── index.ts            # Vercel entry — thin wrapper over server/app.ts
+│       ├── analyze.ts      #   POST /api/analyze — single query analysis
+│       ├── agent.ts        #   POST /api/agent   — agentic codebase scan
+│       ├── transcribe.ts   #   POST /api/transcribe — voice input
+│       └── visualize.ts    #   POST /api/visualize — execution plan image
+├── adapters/               # Deployment adapters (optional, platform-specific)
+│   └── vercel.ts           #   Thin Vercel serverless wrapper over server/app.ts
 └── src/                    # React/Vite frontend
 ```
 
