@@ -64,7 +64,13 @@ export default function QueryAnalyzer() {
         }
       }
 
-      const finding: Finding = JSON.parse(cleanJson(rawRef.current))
+      let finding: Finding
+      try {
+        finding = JSON.parse(cleanJson(rawRef.current))
+      } catch {
+        setError("Couldn't analyse this input — please paste an ORM query, raw SQL, or a schema definition.")
+        return
+      }
       setResult(finding)
       analytics.analyzeResult(finding.severity)
       setVisualLoading(true)

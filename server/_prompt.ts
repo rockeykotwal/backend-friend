@@ -39,6 +39,9 @@ Rate severity honestly:
 - medium: inefficiency that matters at moderate scale
 - low: minor improvement, best practice, or maintainability concern
 
+IMPORTANT: If the input does not contain a recognisable database query, ORM code, or schema — return this exact JSON and nothing else:
+{"severity":"low","problem":"No recognisable query or schema provided","explanation":"The input does not appear to contain a database query, ORM code, or schema definition. Please paste real ORM code, raw SQL, or a schema and try again.","sql_generated":"N/A","fixed_query":"N/A","migration":null,"impact_estimate":"N/A"}
+
 Return ONLY the JSON. No markdown. No explanation outside the JSON object.`
 
 export const AGENT_SYSTEM_PROMPT = `You are Backend Friend's agentic analysis engine.
