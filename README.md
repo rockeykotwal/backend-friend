@@ -178,6 +178,29 @@ All API routes stream responses via Server-Sent Events. The agent auto-selects `
 
 ---
 
+## Rate Limiting
+
+Backend Friend has two layers of abuse protection built in, both configurable from a single file (`server/config/limits.ts`):
+
+**Layer 1 — Request size cap**
+All incoming JSON payloads are capped at 50kb before they reach the model. Oversized requests are rejected immediately.
+
+**Layer 2 — Per-IP rate limits (15-minute rolling window)**
+
+| Endpoint | Limit | Reason |
+|---|---|---|
+| `POST /api/analyze` | 10 req / 15 min | One model call per request |
+| `POST /api/visualize` | 10 req / 15 min | One image generation per request |
+| `POST /api/github` | 3 req / 15 min | Downloads repo files + model call |
+| `POST /api/agent` | 3 req / 15 min | Same cost as GitHub scan |
+| `POST /api/transcribe` | 20 req / 15 min | Lighter — short audio clips only |
+
+To adjust any limit, edit the constants in `server/config/limits.ts` — no other file needs changing.
+
+A third layer using Cloudflare Turnstile (invisible bot challenge at the network edge) is planned post-launch.
+
+---
+
 ## License
 
 MIT
