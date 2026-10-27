@@ -155,13 +155,14 @@ export default function QueryAnalyzer() {
         <div className="input-group">
           <div className="input-label-row">
             <label>Your Query</label>
-            <VoiceInput onTranscript={text => setQuery(prev => prev + text)} />
+            <VoiceInput onTranscript={text => setQuery(prev => prev + text)} disabled={loading} />
           </div>
           <textarea
-            className="code-input"
+            className={`code-input${loading ? ' input-locked' : ''}`}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            readOnly={loading}
             placeholder={`// e.g. TypeORM, Prisma, Django ORM, GORM, raw SQL...\nconst users = await userRepository.find({\n  relations: ['posts'],\n  where: { active: true },\n});`}
             rows={12}
           />
@@ -172,10 +173,11 @@ export default function QueryAnalyzer() {
             <label>Your Schema</label>
           </div>
           <textarea
-            className="code-input"
+            className={`code-input${loading ? ' input-locked' : ''}`}
             value={schema}
             onChange={e => setSchema(e.target.value)}
             onKeyDown={handleKeyDown}
+            readOnly={loading}
             placeholder={`// e.g. Prisma schema, TypeORM entity, Django model, SQL DDL...\n@Entity()\nexport class User {\n  @PrimaryGeneratedColumn() id: number;\n  @Column() active: boolean;\n  @OneToMany(() => Post, p => p.user) posts: Post[];\n}`}
             rows={12}
           />

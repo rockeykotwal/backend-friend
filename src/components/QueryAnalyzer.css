@@ -55,6 +55,7 @@ label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: 
 
 .code-input:focus { border-color: var(--accent); }
 .code-input::placeholder { color: var(--muted); opacity: 0.45; }
+.code-input.input-locked { opacity: 0.5; cursor: not-allowed; }
 
 .btn-analyze {
   background: var(--accent);
