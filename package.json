@@ -11,7 +11,8 @@
     "start": "tsx server/index.ts",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:contract": "vitest run --config vitest.contract.config.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",
