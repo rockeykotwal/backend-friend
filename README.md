@@ -102,6 +102,18 @@ cp .env.example .env        # add your META_MODEL_API_KEY
 npm run dev                 # Vite on :5173, Express API on :3000
 ```
 
+### Testing
+
+```bash
+# Unit tests — fast, no API calls, safe to run anytime
+npm test
+
+# API contract tests — fires real requests, uses Meta API credits
+# Requires the server running in a separate terminal first
+npm run dev:api       # terminal 1
+npm run test:contract # terminal 2
+```
+
 ### Production (any Node.js host)
 
 ```bash

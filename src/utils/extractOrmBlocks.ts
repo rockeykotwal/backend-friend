@@ -14,7 +14,7 @@ const SKIP_PATTERNS: RegExp[] = [
   /_test\.go$/,
   // Java / Kotlin — test classes, Maven/Gradle test source
   /\w+(Test|Tests|Spec)\.(java|kt)$/,
-  /\/src\/test\//,
+  /(^|\/)src\/test\//,
   // Ruby — RSpec / minitest, Rails migrations
   /_(spec|test)\.rb$/,
   /\/spec\//i,
@@ -221,8 +221,8 @@ const CSHARP_PATTERNS: RegExp[] = [
   /\.(BulkInsert|BulkUpdate|BulkDelete|BulkMerge|BulkInsertAsync|BulkUpdateAsync|BulkDeleteAsync|BulkMergeAsync)\s*\(/,
   // Dapper — IDbConnection extension methods
   /\b(?:connection|conn|_conn|_connection)\.(Query|QueryAsync|QueryFirst|QueryFirstAsync|QueryFirstOrDefault|QueryFirstOrDefaultAsync|QuerySingle|QuerySingleAsync|QuerySingleOrDefault|QuerySingleOrDefaultAsync|QueryMultiple|QueryMultipleAsync|Execute|ExecuteAsync|ExecuteScalar|ExecuteScalarAsync|QueryDynamic)\s*[<("@\$]/,
-  // LINQ query syntax (from … in … where … select)
-  /\bfrom\s+\w+\s+in\s+(?:\w+|_?\w+)\s+(?:where|select|join|let|orderby)\b/,
+  // LINQ query syntax — from x in source (where/select appear on subsequent lines)
+  /\bfrom\s+\w+\s+in\s+[\w.]+/,
   // ADO.NET raw
   /\b(?:cmd|command|_command)\.(ExecuteReader|ExecuteReaderAsync|ExecuteNonQuery|ExecuteNonQueryAsync|ExecuteScalar|ExecuteScalarAsync)\s*\(/,
   /new\s+SqlCommand\s*\(|new\s+NpgsqlCommand\s*\(|new\s+MySqlCommand\s*\(/,
