@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import { analytics } from '../utils/analytics'
 import './AnalysisResult.css'
@@ -58,12 +59,22 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading }: Pr
 function Section({ label, code, lang, variant }: {
   label: string; code: string; lang: string; variant: 'bad' | 'good' | 'neutral'
 }) {
-  function copy() { navigator.clipboard.writeText(code); analytics.copyCode(label) }
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    navigator.clipboard.writeText(code)
+    analytics.copyCode(label)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className={`code-section variant-${variant}`}>
       <div className="section-header">
         <span className="section-label">{label}</span>
-        <button className="copy-btn" onClick={copy}>Copy</button>
+        <button className={`copy-btn${copied ? ' copied' : ''}`} onClick={copy}>
+          {copied ? 'Copied ✓' : 'Copy'}
+        </button>
       </div>
       <pre><code className={`language-${lang}`}>{code}</code></pre>
     </div>

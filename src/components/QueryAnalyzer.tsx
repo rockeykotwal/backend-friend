@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AnalysisResult from './AnalysisResult'
 import VoiceInput from './VoiceInput'
 import MetaLoader from './MetaLoader'
@@ -16,7 +16,24 @@ export interface Finding {
   impact_estimate: string
 }
 
-// Strip markdown code fences the model occasionally adds despite being told not to
+const EXAMPLE_QUERY = `const users = await prisma.user.findMany()
+for (const user of users) {
+  const posts = await prisma.post.findMany({ where: { authorId: user.id } })
+}`
+
+const EXAMPLE_SCHEMA = `model User {
+  id    Int    @id @default(autoincrement())
+  name  String
+  posts Post[]
+}
+
+model Post {
+  id       Int    @id @default(autoincrement())
+  title    String
+  authorId Int
+  author   User   @relation(fields: [authorId], references: [id])
+}`
+
 function cleanJson(raw: string): string {
   const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
   return m ? m[1] : raw.trim()
@@ -31,6 +48,15 @@ export default function QueryAnalyzer() {
   const [visualUrl, setVisualUrl] = useState('')
   const [visualLoading, setVisualLoading] = useState(false)
   const rawRef = useRef('')
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [result])
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') analyze()
+  }
 
   async function analyze() {
     if (!query.trim() || !schema.trim()) return
@@ -108,9 +134,18 @@ export default function QueryAnalyzer() {
 
   return (
     <div className="analyzer">
-      <div className="lang-pills">
-        {LANGS.map(l => <span key={l} className="lang-pill">{l}</span>)}
+      <div className="lang-pills-row">
+        <div className="lang-pills">
+          {LANGS.map(l => <span key={l} className="lang-pill">{l}</span>)}
+        </div>
+        <button
+          className="try-example"
+          onClick={() => { setQuery(EXAMPLE_QUERY); setSchema(EXAMPLE_SCHEMA) }}
+        >
+          Try an example →
+        </button>
       </div>
+
       <div className="inputs">
         <div className="input-group">
           <div className="input-label-row">
@@ -121,6 +156,7 @@ export default function QueryAnalyzer() {
             className="code-input"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={`// e.g. TypeORM, Prisma, Django ORM, GORM, raw SQL...\nconst users = await userRepository.find({\n  relations: ['posts'],\n  where: { active: true },\n});`}
             rows={12}
           />
@@ -134,6 +170,7 @@ export default function QueryAnalyzer() {
             className="code-input"
             value={schema}
             onChange={e => setSchema(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={`// e.g. Prisma schema, TypeORM entity, Django model, SQL DDL...\n@Entity()\nexport class User {\n  @PrimaryGeneratedColumn() id: number;\n  @Column() active: boolean;\n  @OneToMany(() => Post, p => p.user) posts: Post[];\n}`}
             rows={12}
           />
@@ -150,7 +187,9 @@ export default function QueryAnalyzer() {
 
       {loading && <MetaLoader />}
       {error && <div className="error">{error}</div>}
-      {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} />}
+      <div ref={resultRef}>
+        {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} />}
+      </div>
     </div>
   )
 }
