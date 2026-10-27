@@ -9,6 +9,7 @@ import { visualizeHandler } from './routes/visualize.js'
 import { MAX_BODY_SIZE, RATE_LIMITS, RATE_LIMIT_MESSAGE } from './config/limits.js'
 
 const app = express()
+app.set('trust proxy', 1) // Cloudflare → Vercel: read real client IP from X-Forwarded-For
 
 // ─── Layer 1: Request size cap ─────────────────────────────────────────────────
 app.use(cors())

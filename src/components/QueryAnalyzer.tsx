@@ -73,8 +73,10 @@ export default function QueryAnalyzer() {
       }
       setResult(finding)
       analytics.analyzeResult(finding.severity)
-      setVisualLoading(true)
-      generateVisual(finding)
+      if (finding.fixed_query !== 'N/A') {
+        setVisualLoading(true)
+        generateVisual(finding)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
     } finally {
