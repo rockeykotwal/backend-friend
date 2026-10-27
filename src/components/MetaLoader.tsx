@@ -19,7 +19,7 @@ export default function MetaLoader() {
           </svg>
         </div>
       </div>
-      <p className="meta-label">Analyzing your query · ~5–10 sec</p>
+      <p className="meta-label">Analyzing your query · ~10–30 sec</p>
     </div>
   )
 }
