@@ -192,7 +192,7 @@ All incoming JSON payloads are capped at 50kb before they reach the model. Overs
 | `POST /api/analyze` | 20 req / 15 min | One model call per request |
 | `POST /api/visualize` | 20 req / 15 min | One image generation per request |
 | `POST /api/github` | 5 req / 15 min | Downloads repo files + model call |
-| `POST /api/agent` | 3 req / 15 min | Same cost as GitHub scan |
+| `POST /api/agent` | 5 req / 15 min | Same cost as GitHub scan |
 | `POST /api/transcribe` | 20 req / 15 min | Lighter — short audio clips only |
 
 To adjust any limit, edit the constants in `server/config/limits.ts` — no other file needs changing.
