@@ -189,9 +189,9 @@ All incoming JSON payloads are capped at 50kb before they reach the model. Overs
 
 | Endpoint | Limit | Reason |
 |---|---|---|
-| `POST /api/analyze` | 10 req / 15 min | One model call per request |
-| `POST /api/visualize` | 10 req / 15 min | One image generation per request |
-| `POST /api/github` | 3 req / 15 min | Downloads repo files + model call |
+| `POST /api/analyze` | 20 req / 15 min | One model call per request |
+| `POST /api/visualize` | 20 req / 15 min | One image generation per request |
+| `POST /api/github` | 5 req / 15 min | Downloads repo files + model call |
 | `POST /api/agent` | 3 req / 15 min | Same cost as GitHub scan |
 | `POST /api/transcribe` | 20 req / 15 min | Lighter — short audio clips only |
 

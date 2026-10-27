@@ -12,10 +12,10 @@ export const RATE_LIMITS = {
   WINDOW_MS: 15 * 60 * 1000,    // 15 minutes
 
   // Max requests per IP per window, per endpoint
-  ANALYZE:    10,   // single query analysis   — model call per request
-  GITHUB:      3,   // GitHub repo scan        — downloads files + model call (heavy)
+  ANALYZE:    20,   // single query analysis   — model call per request
+  GITHUB:      5,   // GitHub repo scan        — downloads files + model call (heavy)
   AGENT:       3,   // folder upload scan      — same cost as GitHub scan
-  VISUALIZE:  10,   // execution plan image    — image generation per request
+  VISUALIZE:  20,   // execution plan image    — image generation per request
   TRANSCRIBE: 20,   // voice transcription     — lighter, short audio clips
 } as const
 
