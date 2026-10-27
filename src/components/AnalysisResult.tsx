@@ -4,6 +4,7 @@ import './AnalysisResult.css'
 interface Props {
   finding: Finding
   visualUrl?: string
+  visualLoading?: boolean
 }
 
 const SEVERITY_LABEL: Record<Finding['severity'], string> = {
@@ -13,7 +14,7 @@ const SEVERITY_LABEL: Record<Finding['severity'], string> = {
   low: 'LOW'
 }
 
-export default function AnalysisResult({ finding, visualUrl }: Props) {
+export default function AnalysisResult({ finding, visualUrl, visualLoading }: Props) {
   return (
     <div className="result">
       <div className="result-header">
@@ -34,6 +35,15 @@ export default function AnalysisResult({ finding, visualUrl }: Props) {
         )}
       </div>
 
+      {visualLoading && !visualUrl && (
+        <div className="visual">
+          <p className="visual-label">Execution Plan · Before vs After</p>
+          <div className="visual-skeleton">
+            <div className="skeleton-shimmer" />
+            <p className="skeleton-label">Generating visual · ~5–10 sec</p>
+          </div>
+        </div>
+      )}
       {visualUrl && (
         <div className="visual">
           <p className="visual-label">Execution Plan · Before vs After</p>

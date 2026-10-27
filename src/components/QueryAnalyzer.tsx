@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import AnalysisResult from './AnalysisResult'
 import VoiceInput from './VoiceInput'
+import MetaLoader from './MetaLoader'
 import './QueryAnalyzer.css'
+import './MetaLoader.css'
 
 export interface Finding {
   severity: 'critical' | 'high' | 'medium' | 'low'
@@ -26,6 +28,7 @@ export default function QueryAnalyzer() {
   const [result, setResult] = useState<Finding | null>(null)
   const [error, setError] = useState('')
   const [visualUrl, setVisualUrl] = useState('')
+  const [visualLoading, setVisualLoading] = useState(false)
   const rawRef = useRef('')
 
   async function analyze() {
@@ -34,6 +37,7 @@ export default function QueryAnalyzer() {
     setResult(null)
     setError('')
     setVisualUrl('')
+    setVisualLoading(false)
     rawRef.current = ''
 
     try {
@@ -60,6 +64,7 @@ export default function QueryAnalyzer() {
 
       const finding: Finding = JSON.parse(cleanJson(rawRef.current))
       setResult(finding)
+      setVisualLoading(true)
       generateVisual(finding)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
@@ -83,34 +88,43 @@ export default function QueryAnalyzer() {
       if (url) setVisualUrl(url)
     } catch {
       // visual is optional — fail silently
+    } finally {
+      setVisualLoading(false)
     }
   }
 
+  const LANGS = ['Node.js', 'Python', 'Go', 'Java', 'Ruby', 'PHP', 'C#', 'Rust']
+
   return (
     <div className="analyzer">
+      <div className="lang-pills">
+        {LANGS.map(l => <span key={l} className="lang-pill">{l}</span>)}
+      </div>
       <div className="inputs">
         <div className="input-group">
           <div className="input-label-row">
-            <label>ORM Query</label>
+            <label>Your Query</label>
             <VoiceInput onTranscript={text => setQuery(prev => prev + text)} />
           </div>
           <textarea
             className="code-input"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={`// Paste your ORM query — Prisma, Django, GORM, TypeORM, SQLAlchemy...\nconst users = await prisma.user.findMany({\n  include: { posts: true }\n})`}
-            rows={8}
+            placeholder={`// e.g. TypeORM, Prisma, Django ORM, GORM, raw SQL...\nconst users = await userRepository.find({\n  relations: ['posts'],\n  where: { active: true },\n});`}
+            rows={12}
           />
         </div>
 
         <div className="input-group">
-          <label>Schema</label>
+          <div className="input-label-row">
+            <label>Your Schema</label>
+          </div>
           <textarea
             className="code-input"
             value={schema}
             onChange={e => setSchema(e.target.value)}
-            placeholder={`// Paste your schema — Prisma schema, Django models, SQLAlchemy models, SQL DDL...\nmodel User {\n  id    Int    @id\n  posts Post[]\n}`}
-            rows={8}
+            placeholder={`// e.g. Prisma schema, TypeORM entity, Django model, SQL DDL...\n@Entity()\nexport class User {\n  @PrimaryGeneratedColumn() id: number;\n  @Column() active: boolean;\n  @OneToMany(() => Post, p => p.user) posts: Post[];\n}`}
+            rows={12}
           />
         </div>
       </div>
@@ -123,8 +137,9 @@ export default function QueryAnalyzer() {
         {loading ? 'Analyzing...' : 'Analyze Query'}
       </button>
 
+      {loading && <MetaLoader />}
       {error && <div className="error">{error}</div>}
-      {result && <AnalysisResult finding={result} visualUrl={visualUrl} />}
+      {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} />}
     </div>
   )
 }

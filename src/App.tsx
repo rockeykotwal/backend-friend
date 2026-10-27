@@ -4,20 +4,33 @@ import AgentScanner from './components/AgentScanner'
 import './App.css'
 
 type Tab = 'analyze' | 'agent'
+type Theme = 'dark' | 'light'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('analyze')
+  const [theme, setTheme] = useState<Theme>('dark')
+
+  function toggleTheme() {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
+  }
 
   return (
     <div className="app">
       <header className="header">
         <div className="header-inner">
-          <div className="logo">
-            <span className="logo-icon">⚡</span>
-            <span className="logo-text">Backend Friend</span>
-            <span className="logo-badge">Beta</span>
+          <div className="header-top">
+            <div className="logo">
+              <span className="logo-icon">⚡</span>
+              <span className="logo-text">Backend Friend</span>
+              <span className="logo-badge">Beta</span>
+            </div>
+            <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+              {theme === 'dark' ? '☀' : '☾'}
+            </button>
           </div>
-          <p className="tagline">ESLint for your database queries — finds N+1s, missing indexes, and overfetching in your ORM code</p>
+          <p className="tagline">ESLint for your database queries — What's killing your database before it kills your app</p>
         </div>
       </header>
 

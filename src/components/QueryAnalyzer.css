@@ -1,10 +1,23 @@
 .analyzer { display: flex; flex-direction: column; gap: 20px; }
 
-.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lang-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.lang-pill {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  letter-spacing: 0.02em;
+}
+
+.inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 35px; align-items: start; }
 
 .input-group { display: flex; flex-direction: column; gap: 8px; }
 
-.input-label-row { display: flex; align-items: center; justify-content: space-between; }
+.input-label-row { display: flex; align-items: center; justify-content: space-between; min-height: 30px; }
 
 label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 
@@ -18,12 +31,14 @@ label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: 
   font-size: 13px;
   line-height: 1.5;
   width: 100%;
+  min-height: 220px;
   outline: none;
   transition: border-color 0.15s;
+  box-sizing: border-box;
 }
 
 .code-input:focus { border-color: var(--accent); }
-.code-input::placeholder { color: var(--muted); }
+.code-input::placeholder { color: var(--muted); opacity: 0.45; }
 
 .btn-analyze {
   background: var(--accent);
