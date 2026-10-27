@@ -3,7 +3,17 @@
 .header { border-bottom: 1px solid var(--border); padding: 20px 0; }
 .header-inner { max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
-.logo { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+
+.theme-toggle {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--muted); padding: 6px 10px; font-size: 15px;
+  border-radius: var(--radius); line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+.theme-toggle:hover:not(:disabled) { border-color: var(--accent); color: var(--text); opacity: 1; }
+
+.logo { display: flex; align-items: center; gap: 8px; }
 .logo-icon { font-size: 20px; }
 .logo-text { font-size: 20px; font-weight: 700; color: var(--text); }
 .logo-badge {

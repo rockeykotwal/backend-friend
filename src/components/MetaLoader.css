@@ -1,0 +1,55 @@
+.meta-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 0;
+}
+
+.meta-ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.meta-svg {
+  width: 80px;
+  height: 80px;
+  animation: meta-spin 1.4s linear infinite;
+}
+
+.meta-arc {
+  transform-origin: 50% 50%;
+}
+
+@keyframes meta-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.meta-logo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meta-infinity {
+  width: 36px;
+  height: 20px;
+  color: var(--accent);
+  animation: meta-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes meta-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.meta-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}

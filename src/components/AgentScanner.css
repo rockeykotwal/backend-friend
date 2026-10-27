@@ -3,11 +3,58 @@
 .scanner-intro h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
 .scanner-intro p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 12px; }
 
+.lang-support { display: flex; flex-direction: column; gap: 8px; }
 .orm-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.orm-list-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 2px; }
-.orm-chip { font-size: 11px; font-weight: 500; padding: 2px 8px; background: rgba(47,129,247,0.1); color: var(--accent); border: 1px solid rgba(47,129,247,0.2); border-radius: 4px; }
+
+.lang-chip {
+  font-size: 11px; font-weight: 500; padding: 2px 8px;
+  background: rgba(24,119,242,0.08); color: var(--accent);
+  border: 1px solid rgba(24,119,242,0.2); border-radius: 4px;
+  cursor: default;
+}
+
+.lang-note { font-size: 11px; color: var(--muted); }
+
+/* Mode toggle */
+.scan-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  width: fit-content;
+}
+.scan-tab {
+  padding: 7px 18px; font-size: 13px;
+  background: transparent; color: var(--muted);
+  border: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.scan-tab:first-child { border-right: 1px solid var(--border); }
+.scan-tab.active { background: var(--accent); color: #fff; }
+.scan-tab:not(.active):hover { background: var(--surface); color: var(--text); }
+
+/* GitHub URL input */
+.github-url-input {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 16px;
+  font-size: 13px; color: var(--text); outline: none;
+  transition: border-color 0.15s;
+}
+.github-url-input:focus { border-color: var(--accent); }
+.github-url-input::placeholder { color: var(--muted); }
 
 .file-row { display: flex; gap: 12px; align-items: center; }
+
+/* Progress dot */
+.progress-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
 
 .file-picker {
   display: inline-flex; align-items: center;
