@@ -1,6 +1,6 @@
 # Backend Friend
 
-**ESLint for your database queries.** AI-powered ORM query analyzer that finds N+1 problems, missing indexes, and overfetching across Node.js, Python, and Go codebases — and gives you the fixed ORM code back.
+**Catch what's killing your database before it kills your app.** AI-powered database query analyzer that finds N+1 problems, missing indexes, overfetching, and more — across every major backend language — and gives you the fixed code back.
 
 Built for the Meta Global AI Developer Hackathon 2026 by [Rockey Kotwal](https://rockeykotwal.in/).
 
@@ -24,61 +24,43 @@ If you have 500 users, this runs **501 database queries** — one to fetch users
 
 **The tools that exist today don't help at the right moment.** pganalyze, EverSQL, pgMustard — they analyse raw SQL from query logs, after the damage is done. They show you the problem in database terms. They don't know you're using Prisma. They can't give you the fixed ORM code. You still have to translate the diagnosis back into your codebase manually.
 
-**Backend Friend works at the ORM level** — where you actually write code. It understands your schema, reads your Prisma/TypeORM/Sequelize queries, and gives you back fixed ORM code and a migration script. Not a SQL explanation. The actual fix, ready to paste.
-
-The problem is universal across every language and every ORM. Backend Friend starts with Node.js — the most widely used backend runtime — and the architecture is built to extend.
+**Backend Friend works at the ORM level** — where you actually write code. It understands your schema, reads your queries, and gives you back fixed ORM code and a migration script. Not a SQL explanation. The actual fix, ready to paste.
 
 ---
 
 ## Language & ORM Support
 
-### Full depth
-
-Full-depth means: smart block extraction (only ORM code is sent to the model, not your whole file), accurate SQL/query representation, fixed code returned in your language, and migration scripts when indexes are needed.
+Full-depth support across all 8 languages — smart block extraction (only ORM code is sent to the model, not your whole file), accurate SQL representation, fixed code returned in your language, and migration scripts when indexes are needed.
 
 | Language | SQL / Query Builders | NoSQL |
 |---|---|---|
 | **Node.js** | Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Knex, Kysely, Objection.js, Waterline, Bookshelf | Mongoose, MongoDB native driver |
 | **Python** | SQLAlchemy (1.x + 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel | PyMongo, Motor, MongoEngine |
 | **Go** | GORM, sqlx, Ent, bun, database/sql, sqlc | mongo-go-driver |
-
-### In the pipeline
-
-These languages are detected and their queries are extracted — the AI will identify and analyse them — but the extraction heuristics and prompt tuning are not yet optimised for each ecosystem. Results may be less precise.
-
-| Language | SQL ORMs |
-|---|---|
-| **Java / Kotlin** | Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ |
-| **Ruby** | ActiveRecord, Sequel |
-| **PHP** | Eloquent (Laravel), Doctrine |
-| **C#** | Entity Framework Core, Dapper |
-| **Rust** | Diesel, SQLx, SeaORM |
+| **Java / Kotlin** | Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JdbcTemplate, Kotlin Exposed | — |
+| **Ruby** | ActiveRecord, Sequel | — |
+| **PHP** | Eloquent (Laravel), Doctrine | — |
+| **C#** | Entity Framework Core, Dapper, ADO.NET | — |
+| **Rust** | Diesel, SQLx, SeaORM | — |
 
 ---
 
 ## What it does
 
-- **Analyze a single query** — paste your ORM query + schema, get severity badge + explanation + SQL being generated + fixed ORM code + migration script
-- **Scan your codebase (agentic)** — point it at your source files, the agent finds every ORM query, analyses them all, and returns a ranked list of issues — critical first
-- **Voice input** — describe your query problem out loud via Muse Voice Transcribe
-- **Execution plan visual** — Muse Image generates a before/after diagram of your query execution
+- **Analyze a single query** — paste your ORM query + schema, get a severity badge, explanation, the SQL being generated, fixed ORM code, and a migration script if needed
+- **Scan a GitHub repo (agentic)** — paste a GitHub URL, the agent fetches the repo, finds every ORM query across all files, analyses them all, and returns a ranked list of issues — critical first
+- **Scan a local folder** — upload your project folder for the same agentic scan without pushing to GitHub
+- **Voice input** — describe your query problem out loud via Muse Voice Transcribe, transcript appends directly to the query box
+- **Execution plan visual** — Muse Image generates a before/after diagram of your query execution plan
 
 ## Meta Models Used
 
 | Model | Role |
 |---|---|
-| `muse-spark-1.3-contributor` | Core ORM analysis + agentic orchestration (open-weight) |
+| `muse-spark-1.3-contributor` | Core ORM analysis + agentic orchestration |
 | `muse-wonder-1.0` | Large codebase fallback — auto-swaps in above 80K tokens |
 | `muse-image-1.0` | Before/after execution plan diagram |
 | `muse-voice-transcribe-1.0` | Voice-to-query input |
-
-## Quick start (npx)
-
-```bash
-npx backend-friend check
-```
-
-Or use the web app at [backend-friend.rockeykotwal.in](https://backend-friend.rockeykotwal.in/)
 
 ---
 
@@ -165,18 +147,31 @@ backend-friend/
 │   ├── _client.ts          #   Meta Model API client
 │   ├── _prompt.ts          #   System prompts for Muse Spark / Muse Wonder
 │   └── routes/
-│       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming)
-│       ├── agent.ts        #   POST /api/agent      — agentic codebase scan (streaming)
+│       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming SSE)
+│       ├── agent.ts        #   POST /api/agent      — agentic folder scan (streaming SSE)
+│       ├── github.ts       #   POST /api/github     — agentic GitHub URL scan (streaming SSE)
 │       ├── transcribe.ts   #   POST /api/transcribe — voice input via Muse Voice
 │       └── visualize.ts    #   POST /api/visualize  — execution plan image via Muse Image
 │
 ├── api/
 │   └── index.ts            #   ⚠️  Vercel-only. 5 lines. Just imports server/app.ts.
-│                           #   Vercel requires serverless functions to live in api/ — this
-│                           #   file exists solely to satisfy that convention. If you are
-│                           #   deploying anywhere other than Vercel, ignore this folder.
+│                           #   Vercel requires serverless functions in api/ — ignore if
+│                           #   deploying anywhere else.
 │
-└── src/                    # React/Vite frontend
+├── src/                    #   React/Vite frontend
+│   ├── utils/
+│   │   ├── extractOrmBlocks.ts   # Smart ORM block extraction — all 8 languages
+│   │   └── analytics.ts          # GA4 event tracking
+│   └── components/
+│       ├── QueryAnalyzer.tsx     # Single query analysis tab
+│       ├── AgentScanner.tsx      # Codebase scan tab (GitHub URL + folder upload)
+│       ├── AnalysisResult.tsx    # Result card with severity, code sections, visual
+│       ├── VoiceInput.tsx        # Voice recording + transcription
+│       └── MetaLoader.tsx        # Animated loading state during analysis
+│
+└── tests/
+    └── contract/
+        └── analyze.contract.test.ts  # Layer B — API contract tests (manual)
 ```
 
 All API routes stream responses via Server-Sent Events. The agent auto-selects `muse-wonder-1.0` for large inputs (80K+ tokens) and `muse-spark-1.3-contributor` for everything else.
