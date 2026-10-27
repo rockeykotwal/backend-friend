@@ -1,4 +1,5 @@
 import type { Finding } from './QueryAnalyzer'
+import { analytics } from '../utils/analytics'
 import './AnalysisResult.css'
 
 interface Props {
@@ -57,7 +58,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading }: Pr
 function Section({ label, code, lang, variant }: {
   label: string; code: string; lang: string; variant: 'bad' | 'good' | 'neutral'
 }) {
-  function copy() { navigator.clipboard.writeText(code) }
+  function copy() { navigator.clipboard.writeText(code); analytics.copyCode(label) }
   return (
     <div className={`code-section variant-${variant}`}>
       <div className="section-header">

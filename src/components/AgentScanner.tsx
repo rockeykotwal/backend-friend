@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
 import { extractOrmBlocks, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
+import { analytics } from '../utils/analytics'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -56,6 +57,7 @@ export default function AgentScanner() {
     setLoading(true)
     reset()
     setProgress('Connecting to GitHub...')
+    analytics.scanGithub()
 
     try {
       const res = await fetch('/api/github', {
@@ -130,6 +132,7 @@ export default function AgentScanner() {
     const parsed: AgentFinding[] = JSON.parse(cleanJson(rawRef.current))
     const order = { critical: 0, high: 1, medium: 2, low: 3 }
     setFindings(parsed.sort((a, b) => order[a.severity] - order[b.severity]))
+    analytics.scanResult(parsed.length)
     setProgress('')
   }
 
@@ -139,14 +142,13 @@ export default function AgentScanner() {
     <div className="scanner">
       <div className="scanner-intro">
         <h2>Scan Your Codebase</h2>
-        <p>Point it at a GitHub repo or your local project folder. The agent finds every ORM query and returns a prioritised fix list — critical issues first.</p>
+        <p>Your codebase has database bugs you don't know about yet. Let's find them.</p>
         <div className="lang-support">
           <div className="orm-list">
             {LANGUAGE_GROUPS.map(g => (
               <span key={g.language} className="lang-chip" title={g.orms.join(', ')}>{g.language}</span>
             ))}
           </div>
-          <p className="lang-note">Deepest coverage for Node.js, Python & Go · All others fully supported</p>
         </div>
       </div>
 

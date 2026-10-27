@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { analytics } from '../utils/analytics'
 import './VoiceInput.css'
 
 interface Props {
@@ -81,6 +82,7 @@ export default function VoiceInput({ onTranscript }: Props) {
     source.connect(processor)
     processor.connect(ctx.destination)
     setRecording(true)
+    analytics.voiceStart()
   }
 
   async function stop() {
@@ -110,7 +112,7 @@ export default function VoiceInput({ onTranscript }: Props) {
       })
       const { text, error: apiError } = await res.json()
       if (apiError) setError('Transcription failed')
-      else if (text) onTranscript(' ' + text)
+      else if (text) { onTranscript(' ' + text); analytics.voiceTranscribed() }
     } catch {
       setError('Transcription failed')
     } finally {
