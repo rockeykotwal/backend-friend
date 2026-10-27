@@ -4,6 +4,7 @@ import './VoiceInput.css'
 
 interface Props {
   onTranscript: (text: string) => void
+  disabled?: boolean
 }
 
 // Encode raw PCM Float32 samples into a WAV ArrayBuffer (RIFF/PCM, 16-bit, mono)
@@ -42,7 +43,7 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(bin)
 }
 
-export default function VoiceInput({ onTranscript }: Props) {
+export default function VoiceInput({ onTranscript, disabled = false }: Props) {
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -126,14 +127,14 @@ export default function VoiceInput({ onTranscript }: Props) {
   }
 
   return (
-    <span className="voice-wrap">
+    <span className={`voice-wrap${disabled ? ' voice-disabled' : ''}`}>
       {!recording && !loading && !error && (
         <span className="voice-hint">Prefer not to type?</span>
       )}
       <button
         className={`voice-btn ${recording ? 'recording' : ''}`}
         onClick={toggle}
-        disabled={loading}
+        disabled={loading || disabled}
         title="Describe your query by voice — Muse Voice Transcribe converts it to text"
       >
         {loading ? 'Transcribing...' : recording ? '⏹ Stop' : '🎤 Describe by voice'}

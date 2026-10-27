@@ -42,7 +42,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading }: Pr
           <p className="visual-label">Execution Plan · Before vs After</p>
           <div className="visual-skeleton">
             <div className="skeleton-shimmer" />
-            <p className="skeleton-label">Generating visual · ~5–10 sec</p>
+            <p className="skeleton-label">Generating visual · ~20–40 sec</p>
           </div>
         </div>
       )}
