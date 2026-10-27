@@ -115,64 +115,158 @@ const GO_PATTERNS: RegExp[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Java / Kotlin (basic) — Hibernate/JPA, Spring Data, MyBatis, jOOQ
+// Java / Kotlin (full) — Hibernate/JPA, Spring Data, MyBatis, jOOQ, JdbcTemplate
 // ---------------------------------------------------------------------------
 const JAVA_PATTERNS: RegExp[] = [
-  /\.(findAll|findById|findOne|findBy\w+|saveAll?|deleteAll?|deleteById|count|existsById|existsBy\w+)\s*\(/,
-  /em\.(find|persist|merge|remove|createQuery|createNamedQuery|createNativeQuery|refresh|detach|flush)\s*\(/,
-  /session\.(get|load|save|update|merge|delete|saveOrUpdate|createQuery|createCriteria|createSQLQuery)\s*\(/,
-  /@Query\s*\(|@Select\s*\(|@Insert\s*\(|@Update\s*\(|@Delete\s*\(/,
-  /createQuery\s*\("|createNativeQuery\s*\("/,
-  /\.setFirstResult\s*\(|\.setMaxResults\s*\(/,
-  /dsl\.(selectFrom|select|insertInto|update|deleteFrom)\s*\(/,
-  /\.(fetch|fetchOne|fetchInto|fetchMap|fetchGroups)\s*\(/,
+  // Spring Data JPA — repository methods
+  /\.(findAll|findAllById|findById|findOne|findFirst|findTop\d*By\w*|findBy\w+|saveAll|saveAllAndFlush|saveAndFlush|deleteAll|deleteAllById|deleteAllByIdInBatch|deleteById|deleteBy\w+|countBy\w*|existsById|existsBy\w+|getById|getOne|getReferenceById)\s*\(/,
+  // Spring Data — sorting/paging
+  /\bPageRequest\.(of|ofSize)\s*\(|Sort\.(by|of)\s*\(/,
+  /\.(findAll|findBy\w+)\s*\(\s*(pageable|sort|PageRequest)/i,
+  // Hibernate EntityManager
+  /em\.(find|persist|merge|remove|contains|refresh|detach|flush|clear|lock|createQuery|createNamedQuery|createNativeQuery|createStoredProcedureQuery)\s*\(/,
+  // Hibernate Session (older API)
+  /session\.(get|load|save|saveOrUpdate|update|merge|delete|persist|evict|flush|clear|createQuery|createCriteria|createSQLQuery|createNativeQuery|byId|byNaturalId)\s*\(/,
+  // JPA Criteria API
+  /criteriaBuilder\.(createQuery|createCriteriaUpdate|createCriteriaDelete|equal|notEqual|greaterThan|lessThan|like|in|and|or|not|conjunction|disjunction)\s*\(/,
+  /criteriaQuery\.(from|select|where|orderBy|groupBy|having|multiselect)\s*\(/,
+  /\broot\.(get|join|joinList|joinSet|joinMap|fetch)\s*\(/,
+  // JPQL / HQL string queries
+  /createQuery\s*\(\s*["'`]|createNamedQuery\s*\(\s*["'`]/,
+  /createNativeQuery\s*\(\s*["'`]/,
+  // Query parameter binding + pagination
+  /\.setParameter\s*\(|\.setFirstResult\s*\(|\.setMaxResults\s*\(|\.setHint\s*\(/,
+  /\.getResultList\s*\(\)|\.getSingleResult\s*\(\)|\.executeUpdate\s*\(\)/,
+  // MyBatis — annotations + mapper calls
+  /@Select\s*\(|@Insert\s*\(|@Update\s*\(|@Delete\s*\(|@Results\s*\(|@Result\s*\(/,
+  /\b\w+Mapper\.(select\w+|insert\w+|update\w+|delete\w+|count\w+|find\w+)\s*\(/,
+  // jOOQ
+  /dsl\.(selectFrom|select|selectDistinct|selectCount|selectZero|insertInto|update|deleteFrom|mergeInto|with|fetchLazy)\s*\(/,
+  /\.(from|join|leftJoin|rightJoin|innerJoin|crossJoin|on|using|where|and|or|groupBy|having|orderBy|limit|offset|seek)\s*\(/,
+  /\.(fetch|fetchOne|fetchAny|fetchSingle|fetchInto|fetchMap|fetchGroups|fetchSet|fetchArray|fetchOptional|execute|executeInsert|executeUpdate|executeDelete)\s*\(/,
+  // Spring JdbcTemplate / NamedParameterJdbcTemplate
+  /jdbcTemplate\.(query|queryForObject|queryForList|queryForMap|queryForRowSet|update|batchUpdate|execute)\s*\(/,
+  /namedParameterJdbcTemplate\.(query|queryForObject|queryForList|update|batchUpdate)\s*\(/,
+  // Kotlin Exposed
+  /\bSchemaUtils\.(create|drop)\s*\(|\bTransaction\.(exec)\s*\(/,
+  /\.(selectAll|select|insert|update|deleteWhere|insertAndGetId|batchInsert|upsert)\s*\{/,
 ]
 
 // ---------------------------------------------------------------------------
-// Ruby (basic) — ActiveRecord, Sequel
+// Ruby (full) — ActiveRecord, Sequel
 // ---------------------------------------------------------------------------
 const RUBY_PATTERNS: RegExp[] = [
-  /\.(all|first|last|find|find_by|find_by_\w+|where|order|group|having|joins|left_joins|includes|eager_load|preload|select|limit|offset|count|sum|average|maximum|minimum|exists\?|pluck|pick|create|create!|build|save|save!|update|update!|destroy|destroy_all|delete|delete_all|first_or_create|find_or_create_by)\s*[(\s.]/,
+  // ActiveRecord — primary query interface
+  /\.(all|first|first!|last|last!|find|find!|find_by|find_by!|find_by_\w+|where|where\.not|rewhere|order|reorder|group|having|joins|left_joins|left_outer_joins|includes|eager_load|preload|select|distinct|limit|offset|count|sum|average|maximum|minimum|exists\?|any\?|none\?|one\?|many\?|pluck|pick|ids|tally)\s*[(\s.]/,
+  // ActiveRecord — write operations
+  /\.(create|create!|new|build|save|save!|update|update!|update_all|update_attribute|update_columns|update_column|destroy|destroy_all|delete|delete_all|touch|increment|increment!|decrement|decrement!|toggle|toggle!|upsert|upsert_all|insert|insert!|insert_all|insert_all!)\s*[(\s]/,
+  // N+1 detection — eager loading (key signals)
   /\.includes\s*\(|\.eager_load\s*\(|\.preload\s*\(/,
-  /ActiveRecord::Base\.connection\.(execute|select_all|select_one)\s*\(/,
+  /\.strict_loading[!(]?/,
+  // ActiveRecord — scoping and batching
+  /\.(scope|default_scope|unscoped|unscope|reselect|except|merge|none)\s*[(\s]/,
+  /\.(find_each|find_in_batches|in_batches)\s*\(/,
+  // ActiveRecord — locking
+  /\.(lock|with_lock|lock!)\s*[(\s!]/,
+  /\.transaction\s*(\{|do)/,
+  // Raw SQL via connection
+  /ActiveRecord::Base\.connection\.(execute|select_all|select_one|select_value|select_values|insert|update|delete)\s*\(/,
   /\.find_by_sql\s*\(/,
-  /DB\s*\[|\.dataset\b/,
+  /\.sanitize_sql|\.sanitize_sql_array/,
+  // ActiveRecord — associations and counters
+  /\.(has_many|has_one|belongs_to|has_and_belongs_to_many)\s+:/,
+  /\.(counter_cache|touch|inverse_of)\s*:/,
+  // Sequel — dataset API
+  /DB\s*\[|\bDB\.(from|select|insert|update|delete)\s*\(/,
+  /\.dataset\b|\.dataset\.(where|select|join|left_join|group|order|limit|offset|all|first|get|count|insert|update|delete)\s*[(\s]/,
+  /\.(from|select_all|select_append|exclude|filter|join_table|natural_join|full_join|cross_join|group_and_count|order_append|reverse|paginate)\s*\(/,
+  /\.(fetch_rows|each|map|flat_map|to_a|first|last|single_record\?|get|all|insert|update|delete)\s*[(\s{]/,
 ]
 
 // ---------------------------------------------------------------------------
-// PHP (basic) — Eloquent (Laravel), Doctrine
+// PHP (full) — Eloquent (Laravel), Doctrine ORM, raw DB facade
 // ---------------------------------------------------------------------------
 const PHP_PATTERNS: RegExp[] = [
-  /\b\w+::(all|find|findOrFail|where|whereIn|whereNotIn|with|withCount|join|leftJoin|orderBy|groupBy|having|limit|offset|count|sum|max|min|avg|first|firstOrFail|firstOrCreate|firstOrNew|create|insert|update|updateOrCreate|delete|destroy|chunk|paginate|get)\s*\(/,
-  /\->(where|with|withCount|join|leftJoin|orderBy|groupBy|having|limit|offset|get|first|paginate|chunk|count|sum|max|min|avg|load|loadMissing)\s*\(/,
-  /DB::(table|select|insert|update|delete|statement|raw|transaction)\s*\(/,
-  /\$em->(find|findAll|findBy|findOneBy|persist|remove|flush|createQuery|createNativeQuery|createQueryBuilder)\s*\(/,
-  /\$qb->(select|from|where|andWhere|orWhere|join|leftJoin|innerJoin|orderBy|groupBy|having|setMaxResults|setFirstResult|getQuery|getResult|getSingleResult|getOneOrNullResult)\s*\(/,
+  // Eloquent — static model calls
+  /\b\w+::(all|find|findOrFail|findMany|findOrNew|where|whereIn|whereNotIn|whereNull|whereNotNull|whereBetween|whereHas|whereDoesntHave|with|withCount|withSum|withAvg|withMax|withMin|withExists|has|doesntHave|join|leftJoin|rightJoin|crossJoin|orderBy|orderByDesc|latest|oldest|groupBy|having|limit|take|offset|skip|count|sum|max|min|avg|first|firstOrFail|firstOrCreate|firstOrNew|firstWhere|create|insert|insertOrIgnore|insertGetId|update|updateOrCreate|updateOrInsert|upsert|delete|destroy|forceDelete|restore|chunk|chunkById|cursor|paginate|simplePaginate|cursorPaginate|get|pluck|lists|value|exists|doesntExist|increment|decrement|touch|truncate|lockForUpdate|sharedLock)\s*\(/,
+  // Eloquent — instance / query builder chain
+  /->(where|orWhere|whereIn|whereNotIn|whereNull|whereNotNull|whereBetween|whereDate|whereColumn|whereHas|orWhereHas|with|withCount|has|doesntHave|join|leftJoin|rightJoin|orderBy|orderByDesc|latest|oldest|groupBy|having|limit|take|offset|skip|get|first|firstOrFail|find|count|sum|max|min|avg|pluck|value|exists|paginate|simplePaginate|cursorPaginate|chunk|chunkById|cursor|lockForUpdate|sharedLock|load|loadMissing|loadCount|loadSum|append)\s*\(/,
+  // Eloquent — N+1 signals
+  /->with\s*\(|->load\s*\(|->loadMissing\s*\(/,
+  // Eloquent — relationships (defined in model, key for N+1 detection)
+  /\b(hasMany|hasOne|belongsTo|belongsToMany|hasManyThrough|hasOneThrough|morphMany|morphOne|morphTo)\s*\(/,
+  // Laravel DB facade — raw queries
+  /DB::(table|select|selectOne|insert|update|delete|statement|affectingStatement|unprepared|raw|transaction|beginTransaction|commit|rollBack)\s*\(/,
+  /DB::table\s*\(->/,
+  // Doctrine EntityManager
+  /\$(?:em|entityManager|this->em|this->entityManager)->(find|findAll|findBy|findOneBy|persist|remove|flush|clear|refresh|contains|detach|merge|createQuery|createNamedQuery|createNativeQuery|createQueryBuilder|getRepository|getReference|getPartialReference)\s*\(/,
+  // Doctrine QueryBuilder
+  /\$(?:qb|queryBuilder|this->qb)->(select|addSelect|from|leftJoin|innerJoin|join|where|andWhere|orWhere|setParameter|setParameters|orderBy|addOrderBy|groupBy|addGroupBy|having|andHaving|orHaving|setMaxResults|setFirstResult|getQuery|getResult|getSingleResult|getOneOrNullResult|getScalarResult|getSingleScalarResult|execute|getSQL)\s*\(/,
+  // Doctrine Repository methods
+  /\$(?:repo|repository|this->repo)->(find|findAll|findBy|findOneBy|findAndCount|count|matching|createQueryBuilder)\s*\(/,
 ]
 
 // ---------------------------------------------------------------------------
-// C# (basic) — Entity Framework Core, Dapper
+// C# (full) — Entity Framework Core, Dapper, raw ADO.NET
 // ---------------------------------------------------------------------------
 const CSHARP_PATTERNS: RegExp[] = [
-  /\.(Where|Select|Include|ThenInclude|FirstOrDefault|FirstOrDefaultAsync|First|FirstAsync|SingleOrDefault|ToList|ToListAsync|Find|FindAsync|Any|AnyAsync|Count|CountAsync|Sum|Max|Min|Average|OrderBy|OrderByDescending|ThenBy|GroupBy|Join|Skip|Take)\s*[(\s<]/,
-  /\.(AsNoTracking|AsSplitQuery|FromSqlRaw|FromSqlInterpolated|ExecuteSqlRaw|ExecuteSqlRawAsync)\s*\(/,
-  /context\.\w+\.(Where|Include|FirstOrDefault|ToList|Add|Remove|SaveChanges|Find)\s*[(\s]/,
-  /connection\.(Query|QueryFirst|QueryFirstOrDefault|QuerySingle|QuerySingleOrDefault|Execute|ExecuteScalar|QueryMultiple)\s*(<|"|@"|\$")/,
-  /\bfrom\s+\w+\s+in\s+\w+\s+(where|select|join)\b/,
+  // EF Core — LINQ query operators (sync + async)
+  /\.(Where|Select|SelectMany|Include|ThenInclude|FirstOrDefault|FirstOrDefaultAsync|First|FirstAsync|Last|LastOrDefault|LastOrDefaultAsync|Single|SingleOrDefault|SingleOrDefaultAsync|Find|FindAsync|Any|AnyAsync|All|Count|CountAsync|LongCount|LongCountAsync|Sum|SumAsync|Max|MaxAsync|Min|MinAsync|Average|AverageAsync|OrderBy|OrderByDescending|ThenBy|ThenByDescending|GroupBy|GroupJoin|Join|LeftJoin|Skip|SkipWhile|Take|TakeWhile|Distinct|DistinctBy|Union|Intersect|Except|Concat|Reverse|ToList|ToListAsync|ToArray|ToArrayAsync|ToDictionary|ToDictionaryAsync|ToHashSet|ToLookup|AsEnumerable|AsAsyncEnumerable)\s*[(\s<]/,
+  // EF Core — tracking / raw SQL / split queries
+  /\.(AsNoTracking|AsNoTrackingWithIdentityResolution|AsTracking|AsSplitQuery|AsSingleQuery|TagWith|IgnoreQueryFilters|IgnoreAutoIncludes|FromSqlRaw|FromSqlInterpolated|FromSql|ExecuteSqlRaw|ExecuteSqlRawAsync|ExecuteSqlInterpolated|ExecuteSqlInterpolatedAsync)\s*\(/,
+  // EF Core — DbContext / DbSet write operations
+  /\b(?:context|_context|this\._?context|ctx|_ctx|db|_db)\.\w+\.(Add|AddAsync|AddRange|AddRangeAsync|Attach|AttachRange|Update|UpdateRange|Remove|RemoveRange|Find|FindAsync|Entry|Where|Include|FirstOrDefault|ToList|Any|Count)\s*[(\s]/,
+  /\b(?:context|_context|ctx|_ctx|db|_db)\.(SaveChanges|SaveChangesAsync|Database|Set|Entry|Attach|Add|Update|Remove)\s*[(\s<]/,
+  // EF Core — bulk operations (EFCore.BulkExtensions)
+  /\.(BulkInsert|BulkUpdate|BulkDelete|BulkMerge|BulkInsertAsync|BulkUpdateAsync|BulkDeleteAsync|BulkMergeAsync)\s*\(/,
+  // Dapper — IDbConnection extension methods
+  /\b(?:connection|conn|_conn|_connection)\.(Query|QueryAsync|QueryFirst|QueryFirstAsync|QueryFirstOrDefault|QueryFirstOrDefaultAsync|QuerySingle|QuerySingleAsync|QuerySingleOrDefault|QuerySingleOrDefaultAsync|QueryMultiple|QueryMultipleAsync|Execute|ExecuteAsync|ExecuteScalar|ExecuteScalarAsync|QueryDynamic)\s*[<("@\$]/,
+  // LINQ query syntax (from … in … where … select)
+  /\bfrom\s+\w+\s+in\s+(?:\w+|_?\w+)\s+(?:where|select|join|let|orderby)\b/,
+  // ADO.NET raw
+  /\b(?:cmd|command|_command)\.(ExecuteReader|ExecuteReaderAsync|ExecuteNonQuery|ExecuteNonQueryAsync|ExecuteScalar|ExecuteScalarAsync)\s*\(/,
+  /new\s+SqlCommand\s*\(|new\s+NpgsqlCommand\s*\(|new\s+MySqlCommand\s*\(/,
+  // Transactions
+  /\b(?:context|db)\.(Database\.BeginTransaction|Database\.BeginTransactionAsync)\s*\(/,
+  /using\s+var\s+\w+\s*=\s*(?:context|db)\.Database\.BeginTransaction/,
 ]
 
 // ---------------------------------------------------------------------------
-// Rust (basic) — Diesel, SQLx, SeaORM
+// Rust (full) — Diesel, SQLx, SeaORM
 // ---------------------------------------------------------------------------
 const RUST_PATTERNS: RegExp[] = [
-  /diesel::(insert_into|update|delete|select)\s*\(/,
+  // Diesel — DSL imports and table macro
   /schema::\w+::dsl::/,
-  /\.(filter|select|order|limit|offset|inner_join|left_join)\s*\(|\.load::<|\.first::<|\.get_result::<|\.execute\s*\(&/,
-  /sqlx::query\s*[!(\s]|sqlx::query_as\s*[!(\s]/,
-  /\bquery!\s*\(|query_as!\s*\(/,
-  /\.(fetch_all|fetch_one|fetch_optional|execute)\s*\(\s*&/,
-  /\w+::Entity::find\s*\(\)|Entity::insert\s*\(/,
-  /\.(filter|order_by|limit|offset|all|one|count|into_json|into_model|find_related)\s*\(/,
+  /diesel::(insert_into|update|delete|select|sql_query|sql)\s*\(/,
+  // Diesel — query building
+  /\.(filter|or_filter|find|select|distinct|order|order_by|then_order_by|limit|offset|inner_join|left_join|left_outer_join|group_by|having|for_update|for_share|no_wait|skip_locked|into_boxed)\s*\(/,
+  // Diesel — execution
+  /\.load::<|\.get_result::<|\.get_results::<|\.first::<|\.execute\s*\(&|\.count\(\)|\.single_value\(\)/,
+  /\.load\s*::<|\.get_result\s*::<|\.get_results\s*::<|\.first\s*::<|\.execute\s*\(conn/,
+  // Diesel — insert / update
+  /insert_into\s*\(\s*\w+::table\s*\)\s*\.values\s*\(/,
+  /diesel::update\s*\(|\.set\s*\(.*\.(eq|ne|gt|lt|ge|le|is_null|is_not_null)\s*\(/,
+  /diesel::delete\s*\(/,
+  // SQLx — macro queries (most common pattern)
+  /sqlx::query!\s*\(|sqlx::query_as!\s*\(|sqlx::query_scalar!\s*\(/,
+  /\bquery!\s*\(|query_as!\s*\(|query_scalar!\s*\(/,
+  // SQLx — runtime query builders
+  /sqlx::query\s*[(\s]|sqlx::query_as\s*[(\s]|sqlx::query_scalar\s*[(\s]/,
+  // SQLx — execution
+  /\.(fetch_all|fetch_one|fetch_optional|fetch_many|execute|fetch)\s*\(\s*(?:&|pool|conn|tx)/,
+  /\.(fetch_all|fetch_one|fetch_optional|execute)\s*\(&/,
+  // SQLx — transactions
+  /pool\.begin\s*\(\)|conn\.begin\s*\(\)|\.transaction\s*\(\s*\|/,
+  /let\s+mut\s+\w+\s*=\s*\w+\.begin\s*\(\)\.await/,
+  // SeaORM — entity operations
+  /\w+::Entity::find\s*\(\)|Entity::find_by_id\s*\(/,
+  /\w+::Entity::(insert|update|delete|find)\s*\(/,
+  /ActiveModel\s*\{|ActiveModelTrait/,
+  // SeaORM — query building
+  /\.(filter|order_by|order_by_asc|order_by_desc|limit|offset|all|one|count|into_json|into_model|into_tuple|find_related|find_linked|columns|column|having|group_by|join|join_as|left_join|inner_join)\s*\(/,
+  // SeaORM — execution
+  /\.(all|one|count|exists|insert|update|save|delete|exec_with_returning)\s*\(\s*(?:db|conn|txn)/,
+  /\bTxnErr\b|db\.transaction\s*\(/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -203,27 +297,27 @@ export const LANGUAGE_GROUPS: LanguageGroup[] = [
   },
   {
     language: 'Java',
-    depth: 'roadmap',
+    depth: 'full',
     orms: ['Hibernate/JPA', 'Spring Data', 'MyBatis', 'jOOQ'],
   },
   {
     language: 'Ruby',
-    depth: 'roadmap',
+    depth: 'full',
     orms: ['ActiveRecord', 'Sequel'],
   },
   {
     language: 'PHP',
-    depth: 'roadmap',
+    depth: 'full',
     orms: ['Eloquent', 'Doctrine'],
   },
   {
     language: 'C#',
-    depth: 'roadmap',
+    depth: 'full',
     orms: ['Entity Framework Core', 'Dapper'],
   },
   {
     language: 'Rust',
-    depth: 'roadmap',
+    depth: 'full',
     orms: ['Diesel', 'SQLx', 'SeaORM'],
   },
 ]
