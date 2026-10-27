@@ -75,6 +75,11 @@ export default function QueryAnalyzer() {
         body: JSON.stringify({ query, schema })
       })
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Something went wrong — please try again.')
+      }
+
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
 
