@@ -35,6 +35,10 @@ export default function AgentScanner() {
 
   // Shared SSE reader used by both scan paths
   async function readAgentStream(res: Response) {
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(data.error ?? 'Something went wrong — please try again.')
+    }
     const reader = res.body!.getReader()
     const decoder = new TextDecoder()
 
