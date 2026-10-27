@@ -47,6 +47,7 @@ export default function QueryAnalyzer() {
   const [error, setError] = useState('')
   const [visualUrl, setVisualUrl] = useState('')
   const [visualLoading, setVisualLoading] = useState(false)
+  const [modelUsed, setModelUsed] = useState('')
   const rawRef = useRef('')
   const resultRef = useRef<HTMLDivElement>(null)
 
@@ -65,6 +66,7 @@ export default function QueryAnalyzer() {
     setError('')
     setVisualUrl('')
     setVisualLoading(false)
+    setModelUsed('')
     analytics.analyzeQuery(!!schema.trim())
     rawRef.current = ''
 
@@ -80,6 +82,7 @@ export default function QueryAnalyzer() {
         throw new Error(data.error ?? 'Something went wrong — please try again.')
       }
 
+      setModelUsed(res.headers.get('x-model-used') ?? '')
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
 
@@ -195,7 +198,7 @@ export default function QueryAnalyzer() {
       {loading && <MetaLoader />}
       {error && <div className="error">{error}</div>}
       <div ref={resultRef}>
-        {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} />}
+        {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} modelUsed={modelUsed} />}
       </div>
     </div>
   )
