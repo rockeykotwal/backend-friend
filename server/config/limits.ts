@@ -1,8 +1,9 @@
 // ─── Layer 1: Request size caps ───────────────────────────────────────────────
 // Rejects oversized payloads before they reach the model — prevents token abuse
 
-export const MAX_BODY_SIZE = '50kb'            // all JSON endpoints
-export const TRANSCRIBE_MAX_BODY_SIZE = '1mb'  // audio base64 — ~20s of 16kHz mono WAV
+export const MAX_BODY_SIZE = '50kb'             // analyze, github, visualize — text only
+export const AGENT_MAX_BODY_SIZE = '500kb'      // folder scan — extracted ORM blocks from many files
+export const TRANSCRIBE_MAX_BODY_SIZE = '1mb'   // audio base64 — ~24s of 16kHz mono WAV
 
 
 // ─── Layer 2: IP rate limits ───────────────────────────────────────────────────
