@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import AnalysisResult from './AnalysisResult'
 import VoiceInput from './VoiceInput'
 import MetaLoader from './MetaLoader'
+import { analytics } from '../utils/analytics'
 import './QueryAnalyzer.css'
 import './MetaLoader.css'
 
@@ -38,6 +39,7 @@ export default function QueryAnalyzer() {
     setError('')
     setVisualUrl('')
     setVisualLoading(false)
+    analytics.analyzeQuery(!!schema.trim())
     rawRef.current = ''
 
     try {
@@ -64,6 +66,7 @@ export default function QueryAnalyzer() {
 
       const finding: Finding = JSON.parse(cleanJson(rawRef.current))
       setResult(finding)
+      analytics.analyzeResult(finding.severity)
       setVisualLoading(true)
       generateVisual(finding)
     } catch (err) {

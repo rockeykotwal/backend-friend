@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import QueryAnalyzer from './components/QueryAnalyzer'
 import AgentScanner from './components/AgentScanner'
+import { analytics } from './utils/analytics'
 import './App.css'
 
 type Tab = 'analyze' | 'agent'
@@ -14,6 +15,7 @@ export default function App() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
     setTheme(next)
     document.documentElement.setAttribute('data-theme', next === 'light' ? 'light' : '')
+    analytics.toggleTheme(next)
   }
 
   return (
@@ -24,13 +26,12 @@ export default function App() {
             <div className="logo">
               <span className="logo-icon">⚡</span>
               <span className="logo-text">Backend Friend</span>
-              <span className="logo-badge">Beta</span>
             </div>
             <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
               {theme === 'dark' ? '☀' : '☾'}
             </button>
           </div>
-          <p className="tagline">ESLint for your database queries — What's killing your database before it kills your app</p>
+          <p className="tagline">Catch what's killing your database before it kills your app</p>
         </div>
       </header>
 
