@@ -23,6 +23,8 @@ export async function agentHandler(req: Request, res: Response) {
   res.setHeader('X-Model-Used', model)
 
   try {
+    res.write(`data: ${JSON.stringify({ model })}\n\n`)
+
     const stream = await metaClient.chat.completions.create({
       model,
       messages: [

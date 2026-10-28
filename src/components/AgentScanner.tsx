@@ -24,12 +24,14 @@ export default function AgentScanner() {
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
+  const [scanModel, setScanModel] = useState('')
   const rawRef = useRef('')
 
   function reset() {
     setFindings([])
     setError('')
     setSelected(null)
+    setScanModel('')
     rawRef.current = ''
   }
 
@@ -51,6 +53,7 @@ export default function AgentScanner() {
         const payload = JSON.parse(line.slice(6))
         if (payload.error) throw new Error(payload.error)
         if (payload.progress) { setProgress(payload.progress); continue }
+        if (payload.model) { setScanModel(payload.model); continue }
         if (payload.text) rawRef.current += payload.text
       }
     }
@@ -221,6 +224,11 @@ export default function AgentScanner() {
                 ? <span key={s} className={`summary-chip severity-${s}`}>{count} {s}</span>
                 : null
             })}
+            {scanModel && (
+              <span className="scan-model-attribution">
+                Analyzed by <span className="attribution-model">{scanModel}</span>
+              </span>
+            )}
           </div>
 
           <div className="findings-list">
