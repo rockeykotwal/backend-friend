@@ -139,6 +139,8 @@ export async function githubHandler(req: Request, res: Response) {
     const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4
     const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
 
+    emit({ model })
+
     const stream = await metaClient.chat.completions.create({
       model,
       messages: [

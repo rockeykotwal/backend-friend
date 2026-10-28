@@ -79,7 +79,14 @@
 }
 
 .findings-summary {
-  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); flex-wrap: wrap;
+}
+
+.scan-model-attribution {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 .summary-chip {
