@@ -38,6 +38,15 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
         )}
       </div>
 
+      {modelUsed && (
+        <div className="model-attribution">
+          <span className="attribution-item">
+            <span className="attribution-label">Analyzed by</span>
+            <span className="attribution-model">{modelUsed}</span>
+          </span>
+        </div>
+      )}
+
       {visualLoading && !visualUrl && (
         <div className="visual">
           <p className="visual-label">Execution Plan · Before vs After</p>
@@ -51,21 +60,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
         <div className="visual">
           <p className="visual-label">Execution Plan · Before vs After</p>
           <img src={visualUrl} alt="Query execution plan comparison" />
-        </div>
-      )}
-
-      {modelUsed && (
-        <div className="model-attribution">
-          <span className="attribution-item">
-            <span className="attribution-label">Analyzed by</span>
-            <span className="attribution-model">{modelUsed}</span>
-          </span>
-          {visualUrl && (
-            <span className="attribution-item">
-              <span className="attribution-label">Visual by</span>
-              <span className="attribution-model">muse-image-1.0</span>
-            </span>
-          )}
+          <p className="visual-model-credit">Visual by <span className="attribution-model">muse-image-1.0</span></p>
         </div>
       )}
     </div>
