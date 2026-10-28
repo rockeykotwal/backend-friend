@@ -220,7 +220,7 @@ const CSHARP_PATTERNS: RegExp[] = [
   // EF Core — bulk operations (EFCore.BulkExtensions)
   /\.(BulkInsert|BulkUpdate|BulkDelete|BulkMerge|BulkInsertAsync|BulkUpdateAsync|BulkDeleteAsync|BulkMergeAsync)\s*\(/,
   // Dapper — IDbConnection extension methods
-  /\b(?:connection|conn|_conn|_connection)\.(Query|QueryAsync|QueryFirst|QueryFirstAsync|QueryFirstOrDefault|QueryFirstOrDefaultAsync|QuerySingle|QuerySingleAsync|QuerySingleOrDefault|QuerySingleOrDefaultAsync|QueryMultiple|QueryMultipleAsync|Execute|ExecuteAsync|ExecuteScalar|ExecuteScalarAsync|QueryDynamic)\s*[<("@\$]/,
+  /\b(?:connection|conn|_conn|_connection)\.(Query|QueryAsync|QueryFirst|QueryFirstAsync|QueryFirstOrDefault|QueryFirstOrDefaultAsync|QuerySingle|QuerySingleAsync|QuerySingleOrDefault|QuerySingleOrDefaultAsync|QueryMultiple|QueryMultipleAsync|Execute|ExecuteAsync|ExecuteScalar|ExecuteScalarAsync|QueryDynamic)\s*[<("@$]/,
   // LINQ query syntax — from x in source (where/select appear on subsequent lines)
   /\bfrom\s+\w+\s+in\s+[\w.]+/,
   // ADO.NET raw

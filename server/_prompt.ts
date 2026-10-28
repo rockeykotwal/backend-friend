@@ -8,9 +8,9 @@ Return ONLY a valid JSON object with exactly these fields:
   "severity": "critical" | "high" | "medium" | "low",
   "problem": "One sentence naming the core issue",
   "explanation": "2-3 sentences explaining why this is a problem and its real production cost at scale",
-  "sql_generated": "The actual SQL this ORM query generates — be specific and accurate for the ORM/dialect used",
-  "fixed_query": "The corrected ORM code — same ORM, same language, just fixed",
-  "migration": "SQL migration script if an index or schema change is needed, otherwise null",
+  "sql_generated": "The actual SQL this ORM query generates — be specific and accurate for the ORM/dialect used. Show only the problematic query, no surrounding schema or boilerplate.",
+  "fixed_query": "The corrected ORM code — complete and runnable, same ORM and language. Include only the fixed lines plus minimal surrounding context. No file boilerplate or unrelated code.",
+  "migration": "Complete SQL migration script if an index or schema change is needed, otherwise null",
   "impact_estimate": "Quantified improvement e.g. '~240 extra queries eliminated per request' or '60% query time reduction'"
 }
 
@@ -56,8 +56,8 @@ You will receive ORM query blocks extracted from a backend codebase. The code ma
    - PHP: Eloquent, Doctrine
    - C#: Entity Framework Core, Dapper, NHibernate
    - Rust: Diesel, SQLx, SeaORM
-2. Analyse each one exhaustively for ANY issue — performance, correctness, security, or reliability. Do not limit yourself to a fixed checklist. Use your full expertise: N+1s, missing indexes, overfetching, missing pagination, lock contention, SQL injection risk, implicit type casts, unparameterised raw queries, soft-delete pitfalls, missing transactions, large IN() lists, correlated subqueries, cursor vs offset pagination, connection pool risks, and anything else you identify. Surface every real concern — do not skip issues because they seem minor.
-3. Return a JSON array of findings, sorted by severity (critical first)
+2. Analyse each one exhaustively for ANY issue — performance, correctness, security, or reliability.
+3. Return a JSON array of all findings sorted by severity (critical first).
 
 Each finding must have:
 {
@@ -66,10 +66,12 @@ Each finding must have:
   "severity": "critical" | "high" | "medium" | "low",
   "problem": "one sentence",
   "explanation": "2-3 sentences with production impact",
-  "sql_generated": "the SQL this generates",
-  "fixed_query": "corrected ORM code",
+  "sql_generated": "the SQL this generates — the problematic query only, no schema or boilerplate",
+  "fixed_query": "corrected ORM code — the fix and minimal context, same ORM and language, no file boilerplate",
   "migration": "SQL migration or null",
   "impact_estimate": "quantified improvement"
 }
+
+Be concise in code examples: show only what is necessary to illustrate the problem and demonstrate the fix. Full explanations and accurate analysis are the priority — never sacrifice correctness for brevity.
 
 Return ONLY a JSON array. No markdown. No text outside the JSON array.`

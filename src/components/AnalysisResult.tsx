@@ -32,7 +32,9 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
 
       <div className="code-sections">
         <Section label="SQL Being Generated" code={finding.sql_generated} lang="sql" variant="bad" />
-        <Section label="Fixed ORM Query" code={finding.fixed_query} lang="typescript" variant="good" />
+        {finding.fixed_query !== 'N/A' && (
+          <Section label="Fixed ORM Query" code={finding.fixed_query} lang="typescript" variant="good" />
+        )}
         {finding.migration && (
           <Section label="Migration Script" code={finding.migration} lang="sql" variant="neutral" />
         )}

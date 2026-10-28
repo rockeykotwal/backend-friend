@@ -7,7 +7,6 @@ const SKIP_PATHS = /node_modules|\/vendor\/|\/target\/|\.git\/|__pycache__|\/dis
 const MAX_FILES = 150
 const MAX_FILE_BYTES = 100_000  // skip files > 100KB
 const CONTEXT_LINES = 8
-const BATCH_SIZE = 10
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|\$queryRaw|\$executeRaw|session\.(query|execute)|db\.session|\.objects\.(filter|get|all|create|update|delete)|joinedload|subqueryload|selectinload|select_related|prefetch_related|cursor\.execute|db\.(Find|First|Where|Preload|Joins|Create|Save|Delete|Count|Query|QueryRow|Get|Select|NamedExec)\(|NewSelect\(|@Query|@Select|@Insert|@Update|@Delete|ActiveRecord|\$em->|\$qb->|DbContext|ToListAsync|FromSqlRaw|diesel::|sqlx::query|SeaORM|Entity::find|collection\.(find|find_one|insert_one|update_one|delete_one|aggregate|Find|FindOne|InsertOne|UpdateOne|DeleteOne|Aggregate)\(/i
 
@@ -96,30 +95,24 @@ export async function githubHandler(req: Request, res: Response) {
       progress: `Found ${sourceFiles.length} source files${truncated ? ' (large repo — scanning top files)' : ''} — downloading...`
     })
 
-    // Fetch file contents in batches
-    const rawFiles: Array<{ path: string; content: string }> = []
-
-    for (let i = 0; i < sourceFiles.length; i += BATCH_SIZE) {
-      const batch = sourceFiles.slice(i, i + BATCH_SIZE)
-      const results = await Promise.allSettled(
-        batch.map(async f => {
-          const r = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(f.path)}`,
-            { headers: ghHeaders }
-          )
-          if (!r.ok) return null
-          const data = await r.json() as { content?: string; encoding?: string }
-          if (!data.content || data.encoding !== 'base64') return null
-          return { path: f.path, content: Buffer.from(data.content, 'base64').toString('utf-8') }
-        })
+    // Fetch all files in parallel
+    const fetchResults = await Promise.allSettled(
+      sourceFiles.map(async f => {
+        const r = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(f.path)}`,
+          { headers: ghHeaders }
+        )
+        if (!r.ok) return null
+        const data = await r.json() as { content?: string; encoding?: string }
+        if (!data.content || data.encoding !== 'base64') return null
+        return { path: f.path, content: Buffer.from(data.content, 'base64').toString('utf-8') }
+      })
+    )
+    const rawFiles = fetchResults
+      .filter((r): r is PromiseFulfilledResult<{ path: string; content: string }> =>
+        r.status === 'fulfilled' && r.value !== null
       )
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) rawFiles.push(r.value)
-      }
-
-      const fetched = Math.min(i + BATCH_SIZE, sourceFiles.length)
-      if (fetched < sourceFiles.length) emit({ progress: `Downloading files (${fetched}/${sourceFiles.length})...` })
-    }
+      .map(r => r.value)
 
     // Extract ORM blocks
     const extracted = rawFiles
@@ -147,7 +140,8 @@ export async function githubHandler(req: Request, res: Response) {
         { role: 'system', content: AGENT_SYSTEM_PROMPT },
         { role: 'user', content: fileBundle }
       ],
-      stream: true
+      stream: true,
+      max_tokens: 10000
     })
 
     for await (const chunk of stream) {

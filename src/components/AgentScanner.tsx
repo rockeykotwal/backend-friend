@@ -185,6 +185,7 @@ export default function AgentScanner() {
             value={repoUrl}
             onChange={e => setRepoUrl(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !loading && canScan && scanGithub()}
+            disabled={loading}
           />
           <button className="btn-scan" onClick={scanGithub} disabled={loading || !canScan}>
             {loading ? 'Scanning...' : 'Scan →'}
@@ -199,7 +200,7 @@ export default function AgentScanner() {
             <input
               type="file"
               multiple
-              // @ts-ignore — webkitdirectory is non-standard but supported in all major browsers
+              // @ts-expect-error — webkitdirectory is non-standard but supported in all major browsers
               webkitdirectory=""
               onChange={e => setFiles(e.target.files)}
             />
@@ -236,18 +237,23 @@ export default function AgentScanner() {
               <div key={i} className={`finding-row ${selected === i ? 'expanded' : ''}`}>
                 <button className="finding-header" onClick={() => setSelected(selected === i ? null : i)}>
                   <span className={`severity-dot severity-${f.severity}`} />
-                  <span className="finding-file">{f.file}{f.line ? `:${f.line}` : ''}</span>
+                  <span className="finding-file">{(() => {
+                    const short = f.file.split('/').slice(-2).join('/')
+                    const slash = short.lastIndexOf('/')
+                    const dir = slash > 0 ? short.slice(0, slash + 1) : ''
+                    const basename = slash > 0 ? short.slice(slash + 1) : short
+                    return <>{dir && <span className="finding-file-dir">{dir}</span>}<span className="finding-file-name">{basename}</span>{f.line && <span className="finding-file-line">:{f.line}</span>}</>
+                  })()}</span>
                   <span className="finding-problem">{f.problem}</span>
                   <span className="finding-chevron">{selected === i ? '▲' : '▼'}</span>
                 </button>
-                {selected === i && (
-                  <div className="finding-detail">
-                    <AnalysisResult finding={f} />
-                  </div>
-                )}
+                <div className={`finding-detail${selected === i ? '' : ' hidden'}`}>
+                  <AnalysisResult finding={f} />
+                </div>
               </div>
             ))}
           </div>
+
         </>
       )}
     </div>
