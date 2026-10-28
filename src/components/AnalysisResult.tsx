@@ -7,6 +7,7 @@ interface Props {
   finding: Finding
   visualUrl?: string
   visualLoading?: boolean
+  modelUsed?: string
 }
 
 const SEVERITY_LABEL: Record<Finding['severity'], string> = {
@@ -16,7 +17,7 @@ const SEVERITY_LABEL: Record<Finding['severity'], string> = {
   low: 'LOW'
 }
 
-export default function AnalysisResult({ finding, visualUrl, visualLoading }: Props) {
+export default function AnalysisResult({ finding, visualUrl, visualLoading, modelUsed }: Props) {
   return (
     <div className="result">
       <div className="result-header">
@@ -50,6 +51,21 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading }: Pr
         <div className="visual">
           <p className="visual-label">Execution Plan · Before vs After</p>
           <img src={visualUrl} alt="Query execution plan comparison" />
+        </div>
+      )}
+
+      {modelUsed && (
+        <div className="model-attribution">
+          <span className="attribution-item">
+            <span className="attribution-label">Analyzed by</span>
+            <span className="attribution-model">{modelUsed}</span>
+          </span>
+          {visualUrl && (
+            <span className="attribution-item">
+              <span className="attribution-label">Visual by</span>
+              <span className="attribution-model">muse-image-1.0</span>
+            </span>
+          )}
         </div>
       )}
     </div>
