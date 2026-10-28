@@ -118,8 +118,12 @@
 .severity-dot.severity-medium { background: var(--medium); }
 .severity-dot.severity-low { background: var(--low); }
 
-.finding-file { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex-shrink: 0; }
-.finding-problem { flex: 1; font-size: 13px; }
+.finding-file { font-family: var(--font-mono); font-size: 12px; color: var(--muted); flex-shrink: 0; max-width: 280px; display: inline-flex; align-items: center; overflow: hidden; white-space: nowrap; }
+.finding-file-dir { color: var(--muted); opacity: 0.6; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 2; }
+.finding-file-name { color: var(--text); flex-shrink: 0; }
+.finding-file-line { color: var(--text); flex-shrink: 0; }
+.finding-problem { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .finding-chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; }
 
 .finding-detail { padding: 20px; border-top: 1px solid var(--border); }
+.finding-detail.hidden { display: none; }
