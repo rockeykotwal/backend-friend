@@ -201,6 +201,74 @@ A third layer using Cloudflare Turnstile (invisible bot challenge at the network
 
 ---
 
+## Roadmap
+
+### `npx backend-friend` — CLI tool
+
+Run Backend Friend directly from your terminal without opening a browser:
+
+```bash
+# Scan a local project folder
+npx backend-friend scan ./src
+
+# Analyze a single file
+npx backend-friend check src/routes/orders.ts
+
+# Output formats
+npx backend-friend scan ./src --format json   # machine-readable, pipe into other tools
+npx backend-friend scan ./src --format table  # compact terminal summary
+npx backend-friend scan ./src --severity critical,high  # filter by severity
+```
+
+The CLI uses the same smart ORM extraction and Meta model analysis as the web app. Designed to be fast enough to run as a pre-commit hook or a pre-push check:
+
+```bash
+# .husky/pre-push
+npx backend-friend scan ./src --severity critical --fail-on-findings
+```
+
+If any CRITICAL issues are found, the push is blocked. Catches N+1s before they reach production.
+
+---
+
+### GitHub Action — automated PR scanning
+
+Add Backend Friend to your CI pipeline with a single workflow file:
+
+```yaml
+# .github/workflows/backend-friend.yml
+name: Database Query Audit
+
+on: [pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rockeykotwal/backend-friend-action@v1
+        with:
+          api-key: ${{ secrets.META_MODEL_API_KEY }}
+          severity-threshold: high   # fail on HIGH or CRITICAL only
+          comment-on-pr: true        # posts findings as a PR comment
+```
+
+When a PR touches files with ORM queries, the action:
+1. Extracts all ORM blocks from changed files only (not the whole repo)
+2. Analyses each one with Muse Spark
+3. Posts findings as an inline PR comment — critical issues first
+4. Optionally fails the check if severity threshold is breached
+
+This makes Backend Friend part of the merge gate — database bugs get the same treatment as type errors or lint failures.
+
+---
+
+### Cloudflare Turnstile — Layer 3 bot protection
+
+Invisible CAPTCHA challenge at the network edge before requests reach the server. Planned post-launch on top of the existing rate limiting layers.
+
+---
+
 ## License
 
 MIT
