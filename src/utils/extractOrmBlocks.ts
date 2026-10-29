@@ -362,6 +362,47 @@ export interface ExtractedFile {
   content: string
   originalLines: number
   extractedLines: number
+  ormHitCount: number
+  detectedLanguage: string
+}
+
+// ---------------------------------------------------------------------------
+// Raw DB driver detection — used to distinguish UNSUPPORTED_ORM from NO_DB_ACCESS
+// Single source of truth: extend this list when adding new driver support.
+// ---------------------------------------------------------------------------
+export const RAW_DB_DRIVER_PATTERNS: RegExp[] = [
+  // Node.js — package.json dependency keys
+  /"pg"\s*:/, /"pg-native"\s*:/, /"mysql2?"\s*:/, /"sqlite3"\s*:/, /"better-sqlite3"\s*:/,
+  /"mongodb"\s*:/, /"redis"\s*:/, /"ioredis"\s*:/, /"tedious"\s*:/, /"oracledb"\s*:/,
+  /"mssql"\s*:/, /"@neondatabase\/serverless"\s*:/, /"@vercel\/postgres"\s*:/, /"@libsql\/client"\s*:/,
+  // Node.js — source imports
+  /from\s+['"]pg['"]/, /require\s*\(\s*['"]pg['"]\s*\)/,
+  /from\s+['"]mysql2?['"]/, /from\s+['"]sqlite3['"]/, /from\s+['"]better-sqlite3['"]/,
+  /from\s+['"]mongodb['"]/, /from\s+['"]redis['"]/, /from\s+['"]ioredis['"]/,
+  /from\s+['"]@neondatabase\/serverless['"]/, /from\s+['"]@vercel\/postgres['"]/,
+  /from\s+['"]@libsql\/client['"]/, /from\s+['"]tedious['"]/, /from\s+['"]oracledb['"]/,
+  // Python — imports and requirements.txt
+  /import\s+psycopg2\b/, /from\s+psycopg2\b/, /^psycopg2\b/m, /^psycopg\b/m,
+  /import\s+pymysql\b/, /^pymysql\b/m, /import\s+asyncpg\b/, /^asyncpg\b/m,
+  /import\s+aiomysql\b/, /^aiomysql\b/m, /import\s+aiopg\b/, /^aiopg\b/m,
+  /import\s+cx_Oracle\b/, /^cx.Oracle\b/m, /import\s+pyodbc\b/, /^pyodbc\b/m,
+  /^mysqlclient\b/m,
+  // Go — go.mod and import blocks
+  /"database\/sql"/, /"github\.com\/jackc\/pgx/, /"github\.com\/lib\/pq"/,
+  /"github\.com\/go-sql-driver\/mysql"/, /"github\.com\/mattn\/go-sqlite3"/,
+  // Ruby — Gemfile
+  /gem\s+['"]pg['"]/, /gem\s+['"]mysql2['"]/, /gem\s+['"]sqlite3['"]/, /gem\s+['"]redis['"]/,
+  // PHP — raw PDO/mysqli
+  /new\s+\\?PDO\s*\(/, /mysqli_connect\s*\(/, /new\s+mysqli\s*\(/,
+  // Rust — Cargo.toml
+  /^tokio-postgres\s*=/m, /^postgres\s*=/m, /^mysql\s*=/m, /^rusqlite\s*=/m,
+  // C# — ADO.NET connection strings / constructors
+  /new\s+SqlConnection\s*\(/, /new\s+NpgsqlConnection\s*\(/, /new\s+MySqlConnection\s*\(/,
+  /new\s+SqliteConnection\s*\(/,
+]
+
+export function detectRawDbUsage(files: Array<{ path: string; content: string }>): boolean {
+  return files.some(f => RAW_DB_DRIVER_PATTERNS.some(p => p.test(f.content)))
 }
 
 export function extractOrmBlocks(filePath: string, content: string): ExtractedFile | null {
@@ -403,5 +444,7 @@ export function extractOrmBlocks(filePath: string, content: string): ExtractedFi
     content: blocks.join('\n\n// ---\n\n'),
     originalLines: lines.length,
     extractedLines: merged.reduce((sum, [s, e]) => sum + (e - s + 1), 0),
+    ormHitCount: matchedRanges.length,
+    detectedLanguage: lang,
   }
 }

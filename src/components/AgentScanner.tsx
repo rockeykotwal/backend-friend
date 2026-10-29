@@ -1,13 +1,21 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
-import { extractOrmBlocks, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
+import { extractOrmBlocks, detectRawDbUsage, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
 import { analytics } from '../utils/analytics'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
   file: string
   line: number | null
+}
+
+type ScanStatus = 'idle' | 'issues_found' | 'clean' | 'unsupported_orm' | 'no_db_access'
+
+interface ScanStats {
+  fileCount: number
+  queryCount: number
+  detectedLanguages: string[]
 }
 
 function cleanJson(raw: string): string {
@@ -21,18 +29,39 @@ export default function AgentScanner() {
   const [files, setFiles] = useState<FileList | null>(null)
   const [loading, setLoading] = useState(false)
   const [findings, setFindings] = useState<AgentFinding[]>([])
+  const [scanStatus, setScanStatus] = useState<ScanStatus>('idle')
+  const [scanStats, setScanStats] = useState<ScanStats | null>(null)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
   const [scanModel, setScanModel] = useState('')
+  const [visuals, setVisuals] = useState<Record<number, { loading: boolean; url: string }>>({})
   const rawRef = useRef('')
 
   function reset() {
     setFindings([])
+    setScanStatus('idle')
+    setScanStats(null)
     setError('')
     setSelected(null)
     setScanModel('')
+    setVisuals({})
     rawRef.current = ''
+  }
+
+  async function generateVisual(finding: AgentFinding, index: number) {
+    setVisuals(v => ({ ...v, [index]: { loading: true, url: '' } }))
+    try {
+      const res = await fetch('/api/visualize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ problem: finding.problem, fix: finding.fixed_query, impact: finding.impact_estimate })
+      })
+      const { url } = await res.json()
+      setVisuals(v => ({ ...v, [index]: { loading: false, url: url ?? '' } }))
+    } catch {
+      setVisuals(v => ({ ...v, [index]: { loading: false, url: '' } }))
+    }
   }
 
   // Shared SSE reader used by both scan paths
@@ -54,6 +83,8 @@ export default function AgentScanner() {
         if (payload.error) throw new Error(payload.error)
         if (payload.progress) { setProgress(payload.progress); continue }
         if (payload.model) { setScanModel(payload.model); continue }
+        if (payload.status) { setScanStatus(payload.status as ScanStatus); continue }
+        if (payload.scanStats) { setScanStats(payload.scanStats as ScanStats); continue }
         if (payload.text) rawRef.current += payload.text
       }
     }
@@ -73,11 +104,12 @@ export default function AgentScanner() {
         body: JSON.stringify({ url: repoUrl.trim() })
       })
       await readAgentStream(res)
-      finalise()
+      if (rawRef.current) finalise()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'GitHub scan failed')
     } finally {
       setLoading(false)
+      setProgress('')
     }
   }
 
@@ -96,7 +128,8 @@ export default function AgentScanner() {
     })
 
     if (!sourceFiles.length) {
-      setError('No backend source files found.')
+      setScanStatus('no_db_access')
+      setScanStats({ fileCount: Array.from(files).length, queryCount: 0, detectedLanguages: [] })
       setLoading(false)
       return
     }
@@ -111,13 +144,20 @@ export default function AgentScanner() {
       .filter(Boolean) as NonNullable<ReturnType<typeof extractOrmBlocks>>[]
 
     if (!extracted.length) {
-      setError('No ORM queries detected. Backend Friend supports SQLAlchemy, Django ORM, GORM, Prisma, TypeORM, and more.')
+      const hasRawDb = detectRawDbUsage(rawContents)
+      setScanStatus(hasRawDb ? 'unsupported_orm' : 'no_db_access')
+      setScanStats({ fileCount: rawContents.length, queryCount: 0, detectedLanguages: [] })
       setLoading(false)
       return
     }
 
     const totalOriginal = rawContents.reduce((s, f) => s + f.content.split('\n').length, 0)
     const totalExtracted = extracted.reduce((s, f) => s + f.extractedLines, 0)
+    setScanStats({
+      fileCount: extracted.length,
+      queryCount: extracted.reduce((s, f) => s + f.ormHitCount, 0),
+      detectedLanguages: [...new Set(extracted.map(f => f.detectedLanguage))],
+    })
     setProgress(`Found ORM queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
 
     try {
@@ -127,11 +167,12 @@ export default function AgentScanner() {
         body: JSON.stringify({ files: extracted.map(f => ({ path: f.path, content: f.content })) })
       })
       await readAgentStream(res)
-      finalise()
+      if (rawRef.current) finalise()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Scan failed')
     } finally {
       setLoading(false)
+      setProgress('')
     }
   }
 
@@ -139,6 +180,7 @@ export default function AgentScanner() {
     const parsed: AgentFinding[] = JSON.parse(cleanJson(rawRef.current))
     const order = { critical: 0, high: 1, medium: 2, low: 3 }
     setFindings(parsed.sort((a, b) => order[a.severity] - order[b.severity]))
+    setScanStatus(parsed.length > 0 ? 'issues_found' : 'clean')
     analytics.scanResult(parsed.length)
     setProgress('')
   }
@@ -215,6 +257,50 @@ export default function AgentScanner() {
       {progress && <div className="progress"><span className="progress-dot" />{progress}</div>}
       {error && <div className="error">{error}</div>}
 
+      {scanStatus === 'clean' && !error && (
+        <div className="scan-status-card status-clean">
+          <span className="status-icon">✓</span>
+          <div>
+            <p className="status-title">No ORM issues found</p>
+            <p className="status-body">
+              {scanStats
+                ? `Backend Friend scanned ${scanStats.queryCount} queries across ${scanStats.fileCount} files and found no N+1 queries, missing indexes, or inefficient joins.`
+                : 'Backend Friend analyzed this codebase and found no ORM issues.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {scanStatus === 'unsupported_orm' && !error && (
+        <div className="scan-status-card status-unsupported">
+          <span className="status-icon">!</span>
+          <div>
+            <p className="status-title">ORM not supported yet</p>
+            <p className="status-body">
+              This project appears to query a database, but not through an ORM Backend Friend supports.
+            </p>
+            <p className="status-supported">
+              Supported: {LANGUAGE_GROUPS.map(g => g.language).join(', ')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {scanStatus === 'no_db_access' && !error && (
+        <div className="scan-status-card status-info">
+          <span className="status-icon">○</span>
+          <div>
+            <p className="status-title">No database queries found</p>
+            <p className="status-body">
+              {scanStats?.fileCount
+                ? `Backend Friend scanned ${scanStats.fileCount} files and found no database or ORM usage, so there's nothing to analyze.`
+                : "Backend Friend found no database or ORM usage in this codebase."}
+              {' '}This is expected for frontend apps, libraries, and CLI tools.
+            </p>
+          </div>
+        </div>
+      )}
+
       {findings.length > 0 && (
         <>
           <div className="findings-summary">
@@ -248,7 +334,16 @@ export default function AgentScanner() {
                   <span className="finding-chevron">{selected === i ? '▲' : '▼'}</span>
                 </button>
                 <div className={`finding-detail${selected === i ? '' : ' hidden'}`}>
-                  <AnalysisResult finding={f} />
+                  <AnalysisResult
+                    finding={f}
+                    visualUrl={visuals[i]?.url}
+                    visualLoading={visuals[i]?.loading}
+                  />
+                  {f.fixed_query !== 'N/A' && !visuals[i]?.url && !visuals[i]?.loading && (
+                    <button className="btn-generate-visual" onClick={() => generateVisual(f, i)}>
+                      Generate Execution Plan
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

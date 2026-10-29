@@ -98,6 +98,30 @@
 .summary-chip.severity-medium { background: rgba(47,129,247,0.15); color: var(--medium); }
 .summary-chip.severity-low { background: rgba(63,185,80,0.15); color: var(--low); }
 
+.scan-status-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  border-radius: var(--radius); padding: 16px 20px;
+  border: 1px solid var(--border);
+}
+.status-clean { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.25); }
+.status-unsupported { background: rgba(227,179,65,0.08); border-color: rgba(227,179,65,0.25); }
+.status-info { background: rgba(255,255,255,0.03); border-color: var(--border); }
+
+.status-icon {
+  font-size: 15px; font-weight: 700; flex-shrink: 0; line-height: 1.5; width: 20px; text-align: center;
+}
+.status-clean .status-icon { color: var(--low); }
+.status-unsupported .status-icon { color: var(--high); }
+.status-info .status-icon { color: var(--muted); }
+
+.status-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.status-clean .status-title { color: var(--low); }
+.status-unsupported .status-title { color: var(--high); }
+.status-info .status-title { color: var(--muted); }
+
+.status-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.status-supported { font-size: 12px; color: var(--muted); opacity: 0.7; margin-top: 6px; }
+
 .findings-list { display: flex; flex-direction: column; gap: 4px; }
 
 .finding-row {
@@ -125,5 +149,14 @@
 .finding-problem { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .finding-chevron { color: var(--muted); font-size: 10px; flex-shrink: 0; }
 
-.finding-detail { padding: 20px; border-top: 1px solid var(--border); }
+.finding-detail { padding: 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0; }
 .finding-detail.hidden { display: none; }
+
+.btn-generate-visual {
+  align-self: flex-start; margin-top: 16px;
+  font-size: 12px; font-weight: 500; padding: 6px 14px;
+  background: transparent; color: var(--accent);
+  border: 1px solid rgba(24,119,242,0.35); border-radius: 4px;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.btn-generate-visual:hover { background: rgba(24,119,242,0.08); border-color: var(--accent); }

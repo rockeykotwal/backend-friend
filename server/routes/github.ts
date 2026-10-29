@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { metaClient, MODELS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
+import { detectRawDbUsage } from '../../src/utils/extractOrmBlocks.js'
 
 const BACKEND_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/
 const SKIP_PATHS = /node_modules|\/vendor\/|\/target\/|\.git\/|__pycache__|\/dist\/|\/build\/|\.next\/|\.nuxt\/|\/coverage\//
@@ -16,8 +17,20 @@ function parseGithubUrl(url: string): { owner: string; repo: string; branch: str
   return { owner: m[1], repo: m[2], branch: m[3] || 'HEAD' }
 }
 
+function detectLanguageName(filePath: string): string | null {
+  if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(filePath)) return 'Node.js'
+  if (/\.py$/.test(filePath)) return 'Python'
+  if (/\.go$/.test(filePath)) return 'Go'
+  if (/\.(java|kt)$/.test(filePath)) return 'Java'
+  if (/\.rb$/.test(filePath)) return 'Ruby'
+  if (/\.php$/.test(filePath)) return 'PHP'
+  if (/\.cs$/.test(filePath)) return 'C#'
+  if (/\.rs$/.test(filePath)) return 'Rust'
+  return null
+}
+
 // Compact ORM block extraction — same logic as client-side extractOrmBlocks
-function extractBlocks(filePath: string, content: string): { path: string; content: string } | null {
+function extractBlocks(filePath: string, content: string): { path: string; content: string; hitCount: number } | null {
   const lines = content.split('\n')
   const ranges: [number, number][] = []
 
@@ -37,7 +50,7 @@ function extractBlocks(filePath: string, content: string): { path: string; conte
   }
 
   const blocks = merged.map(([s, e]) => `// lines ${s + 1}–${e + 1}\n${lines.slice(s, e + 1).join('\n')}`)
-  return { path: filePath, content: blocks.join('\n\n// ---\n\n') }
+  return { path: filePath, content: blocks.join('\n\n// ---\n\n'), hitCount: ranges.length }
 }
 
 export async function githubHandler(req: Request, res: Response) {
@@ -115,18 +128,31 @@ export async function githubHandler(req: Request, res: Response) {
       .map(r => r.value)
 
     // Extract ORM blocks
+    let totalQueryCount = 0
     const extracted = rawFiles
-      .map(f => extractBlocks(f.path, f.content))
-      .filter(Boolean) as Array<{ path: string; content: string }>
+      .map(f => {
+        const result = extractBlocks(f.path, f.content)
+        if (result) totalQueryCount += result.hitCount
+        return result
+      })
+      .filter(Boolean) as Array<{ path: string; content: string; hitCount: number }>
 
-    if (!extracted.length) throw new Error('No ORM queries detected in this repository.')
+    if (!extracted.length) {
+      const hasRawDb = detectRawDbUsage(rawFiles)
+      emit({ status: hasRawDb ? 'unsupported_orm' : 'no_db_access', fileCount: rawFiles.length })
+      res.write('data: [DONE]\n\n')
+      res.end()
+      return
+    }
 
     const totalLines = rawFiles.reduce((s, f) => s + f.content.split('\n').length, 0)
     const extractedLines = extracted.reduce((s, f) => s + f.content.split('\n').length, 0)
+    const detectedLanguages = [...new Set(extracted.map(f => detectLanguageName(f.path)).filter(Boolean))]
 
     emit({
       progress: `Found ORM queries in ${extracted.length} files (${extractedLines} relevant lines from ${totalLines.toLocaleString()} total) — analysing...`
     })
+    emit({ scanStats: { fileCount: extracted.length, queryCount: totalQueryCount, detectedLanguages } })
 
     const fileBundle = extracted.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
     const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4
