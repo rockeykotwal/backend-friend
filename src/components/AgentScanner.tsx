@@ -63,7 +63,7 @@ export default function AgentScanner() {
   const startTimeRef = useRef<number>(0)
 
   useEffect(() => {
-    if (!loading) { setElapsed(0); return }
+    if (!loading) return
     const interval = setInterval(() => {
       setElapsed(Math.round((Date.now() - startTimeRef.current) / 1000))
     }, 1000)
@@ -79,6 +79,7 @@ export default function AgentScanner() {
     setScanModel('')
     setVisuals({})
     setScanDuration(null)
+    setElapsed(0)
     rawRef.current = ''
   }
 
@@ -136,6 +137,7 @@ export default function AgentScanner() {
     if (!repoUrl.trim()) return
     setLoading(true)
     reset()
+    // eslint-disable-next-line react-hooks/purity
     startTimeRef.current = Date.now()
     setProgress('Connecting to GitHub...')
     analytics.scanGithub()
@@ -160,6 +162,7 @@ export default function AgentScanner() {
     if (!files?.length) return
     setLoading(true)
     reset()
+    // eslint-disable-next-line react-hooks/purity
     startTimeRef.current = Date.now()
     setProgress('Reading files...')
 

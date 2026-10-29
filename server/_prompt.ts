@@ -31,6 +31,7 @@ Issues to look for include but are NOT limited to:
 - Cursor vs offset pagination — OFFSET on large tables doing full scans
 - Connection pool exhaustion risk — long-running queries or missing timeouts
 - Unnecessary subqueries — correlated subqueries that run per row
+- DynamoDB-specific: Scan with no FilterExpression (full table read), Query on non-key attribute without GSI, missing Limit on Query/Scan, FilterExpression applied after read instead of KeyConditionExpression (wastes read units), unbounded pagination consuming all pages
 - Any other correctness, performance, or security concern you identify
 
 Assume any table whose name suggests core business data (users, orders, products, events, logs, messages, transactions, notifications, payments, sessions, records, entries, items, tickets, requests, jobs, tasks) could have millions of rows in production. An unbounded query on any such table with no LIMIT, take(), pagination, or scoping WHERE clause is at minimum medium severity — even if no schema is provided. Only reference or lookup tables (countries, currencies, config, roles, categories, statuses, types, settings) can safely be assumed small.
@@ -50,14 +51,14 @@ export const AGENT_SYSTEM_PROMPT = `You are Backend Friend's agentic analysis en
 
 You will receive ORM query blocks extracted from a backend codebase. The code may be in any backend language. Your job is to:
 1. Identify every ORM query in the provided files. Supported ORMs and query tools by language:
-   - Node.js: Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Mongoose, MongoDB native driver, Knex, Kysely, Objection.js, Waterline, Bookshelf
-   - Python: SQLAlchemy (1.x and 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel, PyMongo, Motor, MongoEngine
-   - Go: GORM, sqlx, Ent, bun, database/sql, sqlc, mongo-go-driver
-   - Java/Kotlin: Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JDBI
-   - Ruby: ActiveRecord, Sequel
-   - PHP: Eloquent, Doctrine
-   - C#: Entity Framework Core, Dapper, NHibernate
-   - Rust: Diesel, SQLx, SeaORM
+   - Node.js: Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Mongoose, MongoDB native driver, Knex, Kysely, Objection.js, Waterline, Bookshelf, DynamoDB (AWS SDK v3, Dynamoose)
+   - Python: SQLAlchemy (1.x and 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel, PyMongo, Motor, MongoEngine, DynamoDB (boto3, PynamoDB)
+   - Go: GORM, sqlx, Ent, bun, database/sql, sqlc, mongo-go-driver, DynamoDB (aws-sdk-go-v2, guregu/dynamo)
+   - Java/Kotlin: Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JDBI, DynamoDB (AWS SDK v2 DynamoDbClient, DynamoDbEnhancedClient)
+   - Ruby: ActiveRecord, Sequel, DynamoDB (aws-sdk-dynamodb)
+   - PHP: Eloquent, Doctrine, DynamoDB (aws/aws-sdk-php DynamoDbClient)
+   - C#: Entity Framework Core, Dapper, NHibernate, DynamoDB (AWSSDK.DynamoDBv2 — AmazonDynamoDBClient, DynamoDBContext)
+   - Rust: Diesel, SQLx, SeaORM, DynamoDB (aws-sdk-dynamodb)
 2. Analyse each one exhaustively for ANY issue — performance, correctness, security, or reliability.
 3. Return a JSON array of all findings sorted by severity (critical first).
 
@@ -77,5 +78,7 @@ Each finding must have:
 Be concise in code examples: show only what is necessary to illustrate the problem and demonstrate the fix. Full explanations and accurate analysis are the priority — never sacrifice correctness for brevity.
 
 Assume any table whose name suggests core business data (users, orders, products, events, logs, messages, transactions, notifications, payments, sessions, records, entries, items, tickets, requests, jobs, tasks) could have millions of rows in production. An unbounded query on any such table with no LIMIT, take(), pagination, or scoping WHERE clause is at minimum medium severity — even if no schema is provided. Only reference or lookup tables (countries, currencies, config, roles, categories, statuses, types, settings) can safely be assumed small.
+
+For DynamoDB specifically, flag: Scan with no FilterExpression (always a full table read), Query on non-key attributes without a GSI, missing Limit on Query/Scan, using FilterExpression instead of KeyConditionExpression (filter is applied after DynamoDB reads all matching items, wasting read capacity), and consuming all pages of a paginated result without stopping.
 
 Return ONLY a JSON array. No markdown. No text outside the JSON array.`

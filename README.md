@@ -102,16 +102,16 @@ severity · file · line · fixed code · migration script
 
 Full-depth support across all 8 languages — smart block extraction (only ORM code is sent to the model, not your whole file), accurate SQL representation, fixed code returned in your language, and migration scripts when indexes are needed.
 
-| Language | SQL / Query Builders | NoSQL |
+| Language | SQL / Query Builders | NoSQL / DynamoDB |
 |---|---|---|
-| **Node.js** | Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Knex, Kysely, Objection.js, Waterline, Bookshelf | Mongoose, MongoDB native driver |
-| **Python** | SQLAlchemy (1.x + 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel | PyMongo, Motor, MongoEngine |
-| **Go** | GORM, sqlx, Ent, bun, database/sql, sqlc | mongo-go-driver |
-| **Java / Kotlin** | Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JdbcTemplate, Kotlin Exposed | — |
-| **Ruby** | ActiveRecord, Sequel | — |
-| **PHP** | Eloquent (Laravel), Doctrine | — |
-| **C#** | Entity Framework Core, Dapper, ADO.NET | — |
-| **Rust** | Diesel, SQLx, SeaORM | — |
+| **Node.js** | Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Knex, Kysely, Objection.js, Waterline, Bookshelf | Mongoose, MongoDB native driver, DynamoDB (AWS SDK v3, Dynamoose) |
+| **Python** | SQLAlchemy (1.x + 2.0), Django ORM, Peewee, Tortoise ORM, SQLModel | PyMongo, Motor, MongoEngine, DynamoDB (boto3, PynamoDB) |
+| **Go** | GORM, sqlx, Ent, bun, database/sql, sqlc | mongo-go-driver, DynamoDB (aws-sdk-go-v2, guregu/dynamo) |
+| **Java / Kotlin** | Hibernate/JPA, Spring Data JPA, MyBatis, jOOQ, JdbcTemplate, Kotlin Exposed | DynamoDB (DynamoDbClient, DynamoDbEnhancedClient) |
+| **Ruby** | ActiveRecord, Sequel | DynamoDB (aws-sdk-dynamodb) |
+| **PHP** | Eloquent (Laravel), Doctrine | DynamoDB (aws/aws-sdk-php) |
+| **C#** | Entity Framework Core, Dapper, ADO.NET | DynamoDB (AWSSDK.DynamoDBv2) |
+| **Rust** | Diesel, SQLx, SeaORM | DynamoDB (aws-sdk-dynamodb) |
 
 ---
 
@@ -333,6 +333,80 @@ This makes Backend Friend part of the merge gate — database bugs get the same 
 ### Cloudflare Turnstile — Layer 3 bot protection
 
 Invisible CAPTCHA challenge at the network edge before requests reach the server. Planned post-launch on top of the existing rate limiting layers.
+
+---
+
+### Phase 2 — Extended Database Support
+
+The current version covers relational ORMs, MongoDB, and DynamoDB (all 8 languages) across the full modern data stack. Phase 2 expands to:
+
+#### Redis — cache misuse detection
+
+Redis problems are different from SQL problems — not N+1s, but architectural misuse that causes memory bloat, cache stampedes, and stale data.
+
+- Missing TTL on `SET` / `HSET` — unbounded key growth
+- Storing entire objects when only one field is needed — `GET user:123` returning 50KB when only `email` is used
+- N+1 cache misses — fetching cache keys one-by-one in a loop instead of `MGET`
+- No `SCAN` cursor usage — `KEYS *` in production blocks the event loop
+
+| Language | Libraries detected |
+|---|---|
+| **Node.js** | `ioredis`, `redis` (node-redis) |
+| **Python** | `redis-py` |
+| **Go** | `go-redis`, `redigo` |
+| **Java / Kotlin** | `Jedis`, `Lettuce`, Spring Data Redis |
+| **Ruby** | `redis-rb` |
+| **PHP** | `predis`, `phpredis` |
+| **C#** | `StackExchange.Redis` |
+| **Rust** | `redis-rs` |
+
+---
+
+#### Elasticsearch — unbounded search queries
+
+- Missing `size` limit — default is 10 results but `search_after` / scroll misuse returns thousands
+- Expensive `wildcard` and `fuzzy` queries on unanalysed fields
+- Aggregations on high-cardinality `keyword` fields — memory-intensive at scale
+- `_source` returning full documents when only a few fields are needed
+
+| Language | Libraries detected |
+|---|---|
+| **Node.js** | `@elastic/elasticsearch` |
+| **Python** | `elasticsearch-py`, `elasticsearch-dsl` |
+| **Go** | `go-elasticsearch` |
+| **Java / Kotlin** | Java High Level REST Client, Spring Data Elasticsearch |
+| **Ruby** | `elasticsearch-ruby` |
+| **PHP** | `elasticsearch-php` |
+| **C#** | `NEST`, `Elasticsearch.Net` |
+| **Rust** | `elasticsearch-rs` |
+
+---
+
+#### Firebase / Firestore
+
+- Collection group queries without composite indexes
+- Missing `.limit()` on queries — full collection reads
+- `onSnapshot` listeners without query scoping — streaming millions of docs
+- Real-time listeners on large collections without pagination
+
+Supported via Firebase SDK across Node.js, Python, Go, Java, and mobile (Swift/Dart planned).
+
+---
+
+#### Vector Databases — AI-era query analysis
+
+With AI applications now a core part of most backends, vector database misuse is the next category of production incident. Backend Friend will detect:
+
+- **Missing metadata filters** — similarity search with no pre-filter reads every vector before ranking. Adding a metadata filter (namespace, user ID, date range) reduces the search space by orders of magnitude.
+- **Top-K too large** — `top_k=1000` when only 5 results are displayed. Wastes compute and network.
+- **No namespace scoping** — querying across all namespaces when the data is logically partitioned.
+
+| Database | Libraries detected |
+|---|---|
+| **Pinecone** | `@pinecone-database/pinecone` (Node.js), `pinecone-client` (Python) |
+| **Weaviate** | `weaviate-client` (Node.js, Python, Go, Java) |
+| **Qdrant** | `@qdrant/js-client-rest` (Node.js), `qdrant-client` (Python, Rust) |
+| **Chroma** | `chromadb` (Python, Node.js) |
 
 ---
 
