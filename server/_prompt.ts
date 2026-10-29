@@ -33,6 +33,8 @@ Issues to look for include but are NOT limited to:
 - Unnecessary subqueries — correlated subqueries that run per row
 - Any other correctness, performance, or security concern you identify
 
+Assume any table whose name suggests core business data (users, orders, products, events, logs, messages, transactions, notifications, payments, sessions, records, entries, items, tickets, requests, jobs, tasks) could have millions of rows in production. An unbounded query on any such table with no LIMIT, take(), pagination, or scoping WHERE clause is at minimum medium severity — even if no schema is provided. Only reference or lookup tables (countries, currencies, config, roles, categories, statuses, types, settings) can safely be assumed small.
+
 Rate severity honestly:
 - critical: data loss risk, security vulnerability, or guaranteed production outage at scale
 - high: significant performance degradation under real load
@@ -73,5 +75,7 @@ Each finding must have:
 }
 
 Be concise in code examples: show only what is necessary to illustrate the problem and demonstrate the fix. Full explanations and accurate analysis are the priority — never sacrifice correctness for brevity.
+
+Assume any table whose name suggests core business data (users, orders, products, events, logs, messages, transactions, notifications, payments, sessions, records, entries, items, tickets, requests, jobs, tasks) could have millions of rows in production. An unbounded query on any such table with no LIMIT, take(), pagination, or scoping WHERE clause is at minimum medium severity — even if no schema is provided. Only reference or lookup tables (countries, currencies, config, roles, categories, statuses, types, settings) can safely be assumed small.
 
 Return ONLY a JSON array. No markdown. No text outside the JSON array.`

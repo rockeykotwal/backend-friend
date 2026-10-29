@@ -37,8 +37,7 @@ export async function agentHandler(req: Request, res: Response) {
         { role: 'system', content: AGENT_SYSTEM_PROMPT },
         { role: 'user', content: fileBundle }
       ],
-      stream: true,
-      max_tokens: 32000
+      stream: true
     })
 
     for await (const chunk of stream) {

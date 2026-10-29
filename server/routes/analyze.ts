@@ -7,8 +7,7 @@ export async function analyzeHandler(req: Request, res: Response) {
   if (!query || !schema) return res.status(400).json({ error: 'query and schema are required' })
 
   const userContent = `ORM Query:\n\`\`\`\n${query}\n\`\`\`\n\nSchema:\n\`\`\`\n${schema}\n\`\`\``
-  const inputTokenEstimate = (userContent.length + ANALYSIS_SYSTEM_PROMPT.length) / 4
-  const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
+  const model = MODELS.balanced
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
