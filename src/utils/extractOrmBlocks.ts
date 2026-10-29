@@ -355,7 +355,7 @@ function isOrmLine(line: string, lang: string): boolean {
   return (LANGUAGE_PATTERNS[lang] ?? []).some(p => p.test(line))
 }
 
-const CONTEXT_LINES = 8
+const CONTEXT_LINES = 25
 
 export interface ExtractedFile {
   path: string
@@ -447,4 +447,35 @@ export function extractOrmBlocks(filePath: string, content: string): ExtractedFi
     ormHitCount: matchedRanges.length,
     detectedLanguage: lang,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Schema file injection — current-state model/schema files, not migration history
+// ---------------------------------------------------------------------------
+const SCHEMA_FILE_PATTERNS: RegExp[] = [
+  /schema\.prisma$/i,                          // Prisma
+  /(^|\/)db\/schema\.rb$/i,                    // Rails consolidated schema
+  /(^|\/)src\/schema\.rs$/i,                   // Diesel (Rust)
+  /\.entity\.(ts|js|tsx)$/i,                   // TypeORM / MikroORM entities
+  /(^|\/)models\.py$/i,                        // Django / SQLAlchemy / Peewee
+  /(^|\/)schema\.(ts|js|mjs|cjs)$/i,          // Drizzle and others
+  /(^|\/)models\.(ts|js|mjs|cjs)$/i,          // Node.js model definitions
+  /DbContext\.cs$/i,                            // EF Core
+]
+const SCHEMA_SKIP_PATHS = /\/(migrations?|migrate|Migrations?|alembic\/versions)\//i
+const SCHEMA_MAX_BYTES = 100_000
+
+export function extractSchemaFiles(
+  files: Array<{ path: string; content: string }>
+): Array<{ path: string; content: string }> {
+  const result: Array<{ path: string; content: string }> = []
+  let totalBytes = 0
+  for (const f of files) {
+    if (SCHEMA_SKIP_PATHS.test(f.path)) continue
+    if (!SCHEMA_FILE_PATTERNS.some(p => p.test(f.path))) continue
+    if (totalBytes + f.content.length > SCHEMA_MAX_BYTES) continue
+    result.push(f)
+    totalBytes += f.content.length
+  }
+  return result
 }
