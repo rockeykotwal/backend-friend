@@ -10,7 +10,11 @@
   font-size: 11px; font-weight: 500; padding: 2px 8px;
   background: rgba(24,119,242,0.08); color: var(--accent);
   border: 1px solid rgba(24,119,242,0.2); border-radius: 4px;
-  cursor: default;
+  cursor: default; transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.lang-chip-detected {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
 }
 
 .lang-note { font-size: 11px; color: var(--muted); }
@@ -71,6 +75,12 @@
 .progress {
   font-size: 13px; color: var(--accent);
   display: flex; align-items: center; gap: 8px;
+}
+
+.progress-elapsed {
+  margin-left: auto;
+  font-size: 12px; font-variant-numeric: tabular-nums;
+  opacity: 0.6;
 }
 
 .error {
@@ -166,7 +176,30 @@
 
 /* Model selector */
 .model-selector { display: flex; flex-direction: column; gap: 8px; }
-.model-selector-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.model-selector-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; }
+
+.tier-info-icon {
+  position: relative; display: inline-flex; align-items: center;
+  font-size: 11px; color: var(--muted); opacity: 0.5; cursor: default;
+  font-style: normal; font-weight: 400; text-transform: none; letter-spacing: 0;
+  transition: opacity 0.15s;
+}
+.tier-info-icon:hover { opacity: 1; }
+
+.tier-info-tooltip {
+  display: none;
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(100% + 8px);
+  width: 260px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  font-size: 11px; font-weight: 400; color: var(--muted);
+  line-height: 1.6; text-transform: none; letter-spacing: 0;
+  white-space: normal; z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.tier-info-icon:hover .tier-info-tooltip { display: block; }
 
 .model-tiers { display: flex; gap: 6px; flex-wrap: wrap; }
 
