@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
 import { extractOrmBlocks, detectRawDbUsage, extractSchemaFiles, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
@@ -36,6 +36,12 @@ function langFromPath(filePath: string): string {
   return 'sql'
 }
 
+const LANG_TO_DISPLAY: Record<string, string> = {
+  typescript: 'Node.js', javascript: 'Node.js',
+  python: 'Python', go: 'Go', java: 'Java',
+  ruby: 'Ruby', php: 'PHP', csharp: 'C#', rust: 'Rust',
+}
+
 export default function AgentScanner() {
   const [mode, setMode] = useState<'github' | 'upload'>('github')
   const [repoUrl, setRepoUrl] = useState('')
@@ -52,8 +58,17 @@ export default function AgentScanner() {
   const [modelTier, setModelTier] = useState<'balanced' | 'deep' | 'economy'>('balanced')
   const [economyConsent, setEconomyConsent] = useState(false)
   const [scanDuration, setScanDuration] = useState<number | null>(null)
+  const [elapsed, setElapsed] = useState(0)
   const rawRef = useRef('')
   const startTimeRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!loading) { setElapsed(0); return }
+    const interval = setInterval(() => {
+      setElapsed(Math.round((Date.now() - startTimeRef.current) / 1000))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [loading])
 
   function reset() {
     setFindings([])
@@ -100,10 +115,19 @@ export default function AgentScanner() {
         const payload = JSON.parse(line.slice(6))
         if (payload.error) throw new Error(payload.error)
         if (payload.progress) { setProgress(payload.progress); continue }
-        if (payload.model) { setScanModel(payload.model); continue }
+        if (payload.model) {
+          setScanModel(payload.model)
+          if (payload.model === 'muse-wonder-1.0') {
+            setProgress('Meta Muse Wonder is reasoning — precision findings incoming...')
+          }
+          continue
+        }
         if (payload.status) { setScanStatus(payload.status as ScanStatus); continue }
         if (payload.scanStats) { setScanStats(payload.scanStats as ScanStats); continue }
-        if (payload.text) rawRef.current += payload.text
+        if (payload.text) {
+          if (!rawRef.current) setProgress('')
+          rawRef.current += payload.text
+        }
       }
     }
   }
@@ -178,7 +202,8 @@ export default function AgentScanner() {
       queryCount: extracted.reduce((s, f) => s + f.ormHitCount, 0),
       detectedLanguages: [...new Set(extracted.map(f => f.detectedLanguage))],
     })
-    setProgress(`Found database queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
+    const detectedDisplayLangs = [...new Set(extracted.map(f => LANG_TO_DISPLAY[f.detectedLanguage] ?? f.detectedLanguage))]
+    setProgress(`Found database queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total)${detectedDisplayLangs.length ? ` · ${detectedDisplayLangs.join(', ')}` : ''} — analysing...`)
 
     try {
       const schemaFiles = extractSchemaFiles(rawContents)
@@ -220,6 +245,10 @@ export default function AgentScanner() {
   const inputReady = mode === 'github' ? repoUrl.trim().length > 0 : !!files?.length
   const canScan = inputReady && (modelTier !== 'economy' || economyConsent)
 
+  const detectedSet = new Set(
+    (scanStats?.detectedLanguages ?? []).map(l => LANG_TO_DISPLAY[l] ?? l)
+  )
+
   return (
     <div className="scanner">
       <div className="scanner-intro">
@@ -228,7 +257,11 @@ export default function AgentScanner() {
         <div className="lang-support">
           <div className="orm-list">
             {LANGUAGE_GROUPS.map(g => (
-              <span key={g.language} className="lang-chip" title={g.orms.join(', ')}>{g.language}</span>
+              <span
+                key={g.language}
+                className={`lang-chip${detectedSet.has(g.language) ? ' lang-chip-detected' : ''}`}
+                title={g.orms.join(', ')}
+              >{g.language}</span>
             ))}
           </div>
         </div>
@@ -252,7 +285,15 @@ export default function AgentScanner() {
 
       {/* Model selector */}
       <div className="model-selector">
-        <span className="model-selector-label">Analysis mode</span>
+        <span className="model-selector-label">
+          Analysis mode
+          <span className="tier-info-icon" aria-label="About execution times">
+            ⓘ
+            <span className="tier-info-tooltip">
+              Estimates are typical. Actual time varies with repo size, number of queries found, and how long the model reasons. Deep Analysis uses Meta's Muse Wonder, a reasoning model that thinks before it writes, so expect longer waits on large codebases.
+            </span>
+          </span>
+        </span>
         <div className="model-tiers">
           <button
             className={`model-tier-btn ${modelTier === 'balanced' ? 'active' : ''}`}
@@ -270,7 +311,7 @@ export default function AgentScanner() {
             title="Muse Wonder 1.0 — deepest analysis, best for large or complex codebases"
           >
             <span className="tier-name">Deep Analysis</span>
-            <span className="tier-time">&lt; 120 sec</span>
+            <span className="tier-time">&lt; 180 sec</span>
           </button>
           <button
             className={`model-tier-btn economy-btn ${modelTier === 'economy' ? 'active' : ''}`}
@@ -338,7 +379,12 @@ export default function AgentScanner() {
         </div>
       )}
 
-      {progress && <div className="progress"><span className="progress-dot" />{progress}</div>}
+      {(progress || loading) && (
+        <div className="progress">
+          {progress && <><span className="progress-dot" />{progress}</>}
+          {loading && <span className="progress-elapsed">{elapsed}s</span>}
+        </div>
+      )}
       {error && <div className="error">{error}</div>}
 
       {scanStatus === 'clean' && !error && (

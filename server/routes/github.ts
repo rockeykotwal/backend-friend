@@ -150,7 +150,7 @@ export async function githubHandler(req: Request, res: Response) {
     const detectedLanguages = [...new Set(extracted.map(f => detectLanguageName(f.path)).filter(Boolean))]
 
     emit({
-      progress: `Found database queries in ${extracted.length} files (${extractedLines} relevant lines from ${totalLines.toLocaleString()} total) — analysing...`
+      progress: `Found database queries in ${extracted.length} files (${extractedLines} relevant lines from ${totalLines.toLocaleString()} total)${detectedLanguages.length ? ` · ${detectedLanguages.join(', ')}` : ''} — analysing...`
     })
     emit({ scanStats: { fileCount: extracted.length, queryCount: totalQueryCount, detectedLanguages } })
 
