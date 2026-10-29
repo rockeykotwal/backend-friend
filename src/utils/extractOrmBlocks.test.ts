@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractOrmBlocks } from './extractOrmBlocks'
+import { extractOrmBlocks, detectRawDbUsage } from './extractOrmBlocks'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -507,6 +507,116 @@ describe('Non-ORM files', () => {
 
   it('returns null for unknown file extension', () => {
     shouldSkip('data/seed.sql', `SELECT * FROM users`)
+  })
+})
+
+// ─── ExtractedFile new fields ─────────────────────────────────────────────────
+
+describe('ExtractedFile enriched fields', () => {
+  it('populates ormHitCount with the number of matched lines', () => {
+    const result = extractOrmBlocks('src/users.ts', `
+      const a = await prisma.user.findMany()
+      const b = await prisma.post.findMany()
+    `)!
+    expect(result.ormHitCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('populates detectedLanguage correctly for Node.js', () => {
+    const result = extractOrmBlocks('src/repo.ts', `const u = await prisma.user.findUnique({ where: { id } })`)!
+    expect(result.detectedLanguage).toBe('nodejs')
+  })
+
+  it('populates detectedLanguage correctly for Python', () => {
+    const result = extractOrmBlocks('app/models.py', `users = User.objects.filter(active=True).all()`)!
+    expect(result.detectedLanguage).toBe('python')
+  })
+
+  it('ormHitCount is <= extractedLines', () => {
+    const result = extractOrmBlocks('src/repo.ts', `
+      const users = await prisma.user.findMany({ include: { posts: true } })
+    `)!
+    expect(result.ormHitCount).toBeLessThanOrEqual(result.extractedLines)
+  })
+})
+
+// ─── detectRawDbUsage ────────────────────────────────────────────────────────
+
+describe('detectRawDbUsage', () => {
+  it('returns true for a Node.js file importing pg', () => {
+    expect(detectRawDbUsage([{
+      path: 'src/db.ts',
+      content: `import { Pool } from 'pg'\nconst pool = new Pool()`,
+    }])).toBe(true)
+  })
+
+  it('returns true for a Python file importing psycopg2', () => {
+    expect(detectRawDbUsage([{
+      path: 'db/conn.py',
+      content: `import psycopg2\nconn = psycopg2.connect(os.environ['DB'])`,
+    }])).toBe(true)
+  })
+
+  it('returns true for package.json listing pg as a dependency', () => {
+    expect(detectRawDbUsage([{
+      path: 'package.json',
+      content: JSON.stringify({ dependencies: { pg: '^8.11.0', express: '^4.18.0' } }),
+    }])).toBe(true)
+  })
+
+  it('returns true for requirements.txt listing psycopg2', () => {
+    expect(detectRawDbUsage([{
+      path: 'requirements.txt',
+      content: `psycopg2-binary==2.9.7\nfastapi==0.103.0`,
+    }])).toBe(true)
+  })
+
+  it('returns true for a Go file importing database/sql', () => {
+    expect(detectRawDbUsage([{
+      path: 'store/db.go',
+      content: `import (\n  "database/sql"\n  "fmt"\n)`,
+    }])).toBe(true)
+  })
+
+  it('returns false for a pure React component', () => {
+    expect(detectRawDbUsage([{
+      path: 'src/Button.tsx',
+      content: `export default function Button() { return <button>Click</button> }`,
+    }])).toBe(false)
+  })
+
+  it('returns false for an empty file list', () => {
+    expect(detectRawDbUsage([])).toBe(false)
+  })
+
+  it('returns true when at least one file in a mixed set has raw DB usage', () => {
+    expect(detectRawDbUsage([
+      { path: 'src/Button.tsx', content: `export default function Button() {}` },
+      { path: 'src/db.ts', content: `import { Pool } from 'pg'` },
+    ])).toBe(true)
+  })
+})
+
+// ─── Scan status derivation ──────────────────────────────────────────────────
+
+describe('scan status derivation (upload path logic)', () => {
+  it('ISSUES_FOUND / CLEAN path: ORM code produces extractOrmBlocks results', () => {
+    const files = [{ path: 'app/models.py', content: `posts = Post.objects.all().prefetch_related('comments')` }]
+    const extracted = files.map(f => extractOrmBlocks(f.path, f.content)).filter(Boolean)
+    expect(extracted.length).toBeGreaterThan(0)
+  })
+
+  it('UNSUPPORTED_ORM: no extracted blocks but raw DB usage detected', () => {
+    const files = [{ path: 'src/db.ts', content: `import { Pool } from 'pg'\nconst pool = new Pool()` }]
+    const extracted = files.map(f => extractOrmBlocks(f.path, f.content)).filter(Boolean)
+    expect(extracted.length).toBe(0)
+    expect(detectRawDbUsage(files)).toBe(true)
+  })
+
+  it('NO_DB_ACCESS: no extracted blocks and no raw DB usage', () => {
+    const files = [{ path: 'src/utils/format.ts', content: `export const fmt = (d: Date) => d.toISOString()` }]
+    const extracted = files.map(f => extractOrmBlocks(f.path, f.content)).filter(Boolean)
+    expect(extracted.length).toBe(0)
+    expect(detectRawDbUsage(files)).toBe(false)
   })
 })
 
