@@ -1,8 +1,36 @@
-# Backend Friend
+# ⚡ Backend Friend
 
-**Catch what's killing your database before it kills your app.** AI-powered database query analyzer that finds N+1 problems, missing indexes, overfetching, and more — across every major backend language — and gives you the fixed code back.
+**Catch what's killing your database before it kills your app.**
 
-Built for the Meta Global AI Developer Hackathon 2026 by [Rockey Kotwal](https://rockeykotwal.in/).
+AI-powered database query analyzer that finds N+1 problems, missing indexes, overfetching, and more — across every major backend language — and gives you the fixed code back.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-brightgreen)](https://nodejs.org)
+[![Built with Meta AI](https://img.shields.io/badge/Built%20with-Meta%20AI-0064e0)](https://dev.meta.ai)
+[![Meta Hackathon 2026](https://img.shields.io/badge/Meta%20Hackathon-2026-blueviolet)](https://dev.meta.ai)
+
+**[→ Try it live](https://backend-friend.rockeykotwal.in)** · Built for the [Meta Global AI Developer Hackathon 2026](https://dev.meta.ai) by [Rockey Kotwal](https://rockeykotwal.in)
+
+---
+
+![Backend Friend — scan results overview](docs/Scan_Result_tiles.png)
+
+---
+
+## Table of Contents
+
+- [The Problem](#the-problem)
+- [How It Works](#how-it-works)
+- [What It Does](#what-it-does)
+- [Language & ORM Support](#language--orm-support)
+- [Meta Models Used](#meta-models-used)
+- [Architecture](#architecture)
+- [Self-hosting](#self-hosting)
+- [Rate Limiting](#rate-limiting)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+
+---
 
 ## The Problem
 
@@ -28,6 +56,48 @@ If you have 500 users, this runs **501 database queries** — one to fetch users
 
 ---
 
+## How It Works
+
+```
+GitHub URL or folder upload
+        │
+        ▼
+Smart ORM block extraction
+(only query code sent — not your whole repo)
+        │
+        ▼
+Meta Muse model analysis
+(schema-aware, language-aware)
+        │
+        ▼
+Ranked findings — Critical first
+severity · file · line · fixed code · migration script
+```
+
+1. **Extract** — scans every backend file, pulls only ORM query blocks (±25 lines of context). A 100K-line repo becomes ~200 relevant lines.
+2. **Analyse** — sends the extracted blocks + your schema to Meta Muse. The model understands your ORM, the SQL it generates, and what will break at scale.
+3. **Fix** — returns ranked findings with the problematic code, the SQL being generated, the fixed ORM code in your language, and a migration script when indexes are needed.
+
+---
+
+## What It Does
+
+- **Analyze a single query** — paste your ORM query + schema, get a severity badge, explanation, the SQL being generated, fixed ORM code, and a migration script if needed
+- **Scan a GitHub repo (agentic)** — paste a GitHub URL, the agent fetches the repo, finds every ORM query across all files, analyses them all, and returns a ranked list of issues — critical first
+- **Scan a local folder** — upload your project folder for the same agentic scan without pushing to GitHub
+- **Voice input** — describe your query problem out loud via Muse Voice Transcribe, transcript appends directly to the query box
+- **Execution plan visual** — Muse Image generates a before/after diagram of your query execution plan
+
+### Expanded finding with fixed code
+
+![Expanded critical finding with problematic code and fix](docs/Scan_Result_tile_expand.png)
+
+### Execution plan — before vs after
+
+![Muse Image before/after execution plan diagram](docs/execution_plan.png)
+
+---
+
 ## Language & ORM Support
 
 Full-depth support across all 8 languages — smart block extraction (only ORM code is sent to the model, not your whole file), accurate SQL representation, fixed code returned in your language, and migration scripts when indexes are needed.
@@ -45,14 +115,6 @@ Full-depth support across all 8 languages — smart block extraction (only ORM c
 
 ---
 
-## What it does
-
-- **Analyze a single query** — paste your ORM query + schema, get a severity badge, explanation, the SQL being generated, fixed ORM code, and a migration script if needed
-- **Scan a GitHub repo (agentic)** — paste a GitHub URL, the agent fetches the repo, finds every ORM query across all files, analyses them all, and returns a ranked list of issues — critical first
-- **Scan a local folder** — upload your project folder for the same agentic scan without pushing to GitHub
-- **Voice input** — describe your query problem out loud via Muse Voice Transcribe, transcript appends directly to the query box
-- **Execution plan visual** — Muse Image generates a before/after diagram of your query execution plan
-
 ## Meta Models Used
 
 Backend Friend uses four Meta models, each chosen for a specific job. Full specs at [dev.meta.ai/docs/models](https://dev.meta.ai/docs/models).
@@ -60,12 +122,55 @@ Backend Friend uses four Meta models, each chosen for a specific job. Full specs
 | Mode | Model | Role | Privacy |
 |---|---|---|---|
 | **Balanced** *(default)* | [`muse-spark-1.3`](https://dev.meta.ai/docs/models) | Core analysis + agentic scan — fast, accurate, handles most codebases | Code never used for training |
-| **Deep Analysis** | [`muse-wonder-1.0`](https://dev.meta.ai/docs/models) | Large repos, subtle multi-file bugs, complex architecture — Meta's most capable API model | Code never used for training |
+| **Deep Analysis** | [`muse-wonder-1.0`](https://dev.meta.ai/docs/models) | Large repos, subtle multi-file bugs, complex architecture — Meta's reasoning model | Code never used for training |
 | **Economy** *(opt-in)* | [`muse-spark-1.3-contributor`](https://dev.meta.ai/docs/models) | Same quality as Balanced — open-weight variant, fraction of the cost | ⚠ Meta may use submitted code to train future models. Explicit consent required. |
 | — | [`muse-image-1.0`](https://dev.meta.ai/docs/models) | Before/after query execution plan diagram | — |
 | — | [`muse-voice-transcribe-1.0`](https://dev.meta.ai/docs/models) | Voice-to-query input | — |
 
 Economy mode is gated behind an explicit consent checkbox in the UI — it is never the default and never a silent fallback. All three text models share a 1M token context window.
+
+---
+
+## Architecture
+
+The project is intentionally split so the core application has zero platform dependencies.
+
+```
+backend-friend/
+├── server/                 # ← The entire application lives here
+│   ├── app.ts              #   Express app — no Vercel, no platform code, runs anywhere
+│   ├── index.ts            #   Standalone entry: node server/index.ts (or npm start)
+│   ├── _client.ts          #   Meta Model API client
+│   ├── _prompt.ts          #   System prompts for Muse Spark / Muse Wonder
+│   └── routes/
+│       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming SSE)
+│       ├── agent.ts        #   POST /api/agent      — agentic folder scan (streaming SSE)
+│       ├── github.ts       #   POST /api/github     — agentic GitHub URL scan (streaming SSE)
+│       ├── transcribe.ts   #   POST /api/transcribe — voice input via Muse Voice
+│       └── visualize.ts    #   POST /api/visualize  — execution plan image via Muse Image
+│
+├── api/
+│   └── index.ts            #   ⚠️  Vercel-only. 5 lines. Just imports server/app.ts.
+│                           #   Vercel requires serverless functions in api/ — ignore if
+│                           #   deploying anywhere else.
+│
+├── src/                    #   React/Vite frontend
+│   ├── utils/
+│   │   ├── extractOrmBlocks.ts   # Smart ORM block extraction — all 8 languages
+│   │   └── analytics.ts          # GA4 event tracking
+│   └── components/
+│       ├── QueryAnalyzer.tsx     # Single query analysis tab
+│       ├── AgentScanner.tsx      # Codebase scan tab (GitHub URL + folder upload)
+│       ├── AnalysisResult.tsx    # Result card with severity, code sections, visual
+│       ├── VoiceInput.tsx        # Voice recording + transcription
+│       └── MetaLoader.tsx        # Animated loading state during analysis
+│
+└── tests/
+    └── contract/
+        └── analyze.contract.test.ts  # Layer B — API contract tests (manual)
+```
+
+All API routes stream responses via Server-Sent Events. The analysis model is user-selectable (Balanced / Deep Analysis / Economy) and passed per-request — no silent auto-switching.
 
 ---
 
@@ -137,49 +242,6 @@ CMD ["npm", "start"]
 docker build -t backend-friend .
 docker run -p 3000:3000 -e META_MODEL_API_KEY=your_key_here backend-friend
 ```
-
----
-
-## Architecture
-
-The project is intentionally split so the core application has zero platform dependencies.
-
-```
-backend-friend/
-├── server/                 # ← The entire application lives here
-│   ├── app.ts              #   Express app — no Vercel, no platform code, runs anywhere
-│   ├── index.ts            #   Standalone entry: node server/index.ts (or npm start)
-│   ├── _client.ts          #   Meta Model API client
-│   ├── _prompt.ts          #   System prompts for Muse Spark / Muse Wonder
-│   └── routes/
-│       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming SSE)
-│       ├── agent.ts        #   POST /api/agent      — agentic folder scan (streaming SSE)
-│       ├── github.ts       #   POST /api/github     — agentic GitHub URL scan (streaming SSE)
-│       ├── transcribe.ts   #   POST /api/transcribe — voice input via Muse Voice
-│       └── visualize.ts    #   POST /api/visualize  — execution plan image via Muse Image
-│
-├── api/
-│   └── index.ts            #   ⚠️  Vercel-only. 5 lines. Just imports server/app.ts.
-│                           #   Vercel requires serverless functions in api/ — ignore if
-│                           #   deploying anywhere else.
-│
-├── src/                    #   React/Vite frontend
-│   ├── utils/
-│   │   ├── extractOrmBlocks.ts   # Smart ORM block extraction — all 8 languages
-│   │   └── analytics.ts          # GA4 event tracking
-│   └── components/
-│       ├── QueryAnalyzer.tsx     # Single query analysis tab
-│       ├── AgentScanner.tsx      # Codebase scan tab (GitHub URL + folder upload)
-│       ├── AnalysisResult.tsx    # Result card with severity, code sections, visual
-│       ├── VoiceInput.tsx        # Voice recording + transcription
-│       └── MetaLoader.tsx        # Animated loading state during analysis
-│
-└── tests/
-    └── contract/
-        └── analyze.contract.test.ts  # Layer B — API contract tests (manual)
-```
-
-All API routes stream responses via Server-Sent Events. The analysis model is user-selectable (Balanced / Deep Analysis / Economy) and passed per-request — no silent auto-switching.
 
 ---
 
@@ -271,6 +333,16 @@ This makes Backend Friend part of the merge gate — database bugs get the same 
 ### Cloudflare Turnstile — Layer 3 bot protection
 
 Invisible CAPTCHA challenge at the network edge before requests reach the server. Planned post-launch on top of the existing rate limiting layers.
+
+---
+
+## Contributing
+
+PRs are welcome. For non-trivial changes, open an issue first so we can align on the approach before you invest the time.
+
+- Keep PRs focused — one concern per PR
+- The server and frontend are fully independent; changes to one shouldn't require changes to the other
+- All routes stream via SSE — new endpoints should follow the same pattern
 
 ---
 
