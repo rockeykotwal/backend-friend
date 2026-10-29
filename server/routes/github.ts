@@ -1,13 +1,13 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client.js'
+import { metaClient, MODELS, MODEL_TIERS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
-import { detectRawDbUsage } from '../../src/utils/extractOrmBlocks.js'
+import { detectRawDbUsage, extractSchemaFiles } from '../../src/utils/extractOrmBlocks.js'
 
 const BACKEND_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/
 const SKIP_PATHS = /node_modules|\/vendor\/|\/target\/|\.git\/|__pycache__|\/dist\/|\/build\/|\.next\/|\.nuxt\/|\/coverage\//
 const MAX_FILES = 150
 const MAX_FILE_BYTES = 100_000  // skip files > 100KB
-const CONTEXT_LINES = 8
+const CONTEXT_LINES = 25
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|\$queryRaw|\$executeRaw|session\.(query|execute)|db\.session|\.objects\.(filter|get|all|create|update|delete)|joinedload|subqueryload|selectinload|select_related|prefetch_related|cursor\.execute|db\.(Find|First|Where|Preload|Joins|Create|Save|Delete|Count|Query|QueryRow|Get|Select|NamedExec)\(|NewSelect\(|@Query|@Select|@Insert|@Update|@Delete|ActiveRecord|\$em->|\$qb->|DbContext|ToListAsync|FromSqlRaw|diesel::|sqlx::query|SeaORM|Entity::find|collection\.(find|find_one|insert_one|update_one|delete_one|aggregate|Find|FindOne|InsertOne|UpdateOne|DeleteOne|Aggregate)\(/i
 
@@ -54,7 +54,7 @@ function extractBlocks(filePath: string, content: string): { path: string; conte
 }
 
 export async function githubHandler(req: Request, res: Response) {
-  const { url } = req.body as { url: string }
+  const { url, model: modelTier } = req.body as { url: string; model?: string }
   if (!url) return res.status(400).json({ error: 'url is required' })
 
   const parsed = parseGithubUrl(url)
@@ -154,9 +154,12 @@ export async function githubHandler(req: Request, res: Response) {
     })
     emit({ scanStats: { fileCount: extracted.length, queryCount: totalQueryCount, detectedLanguages } })
 
-    const fileBundle = extracted.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
-    const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4
-    const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
+    const schemaFiles = extractSchemaFiles(rawFiles)
+    const schemaPart = schemaFiles.length
+      ? schemaFiles.map(f => `// SCHEMA: ${f.path}\n${f.content}`).join('\n\n---\n\n') + '\n\n===\n\n'
+      : ''
+    const fileBundle = schemaPart + extracted.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
+    const model = MODEL_TIERS[modelTier ?? ''] ?? MODELS.balanced
 
     emit({ model })
 
@@ -167,7 +170,7 @@ export async function githubHandler(req: Request, res: Response) {
         { role: 'user', content: fileBundle }
       ],
       stream: true,
-      max_tokens: 10000
+      max_tokens: 32000
     })
 
     for await (const chunk of stream) {

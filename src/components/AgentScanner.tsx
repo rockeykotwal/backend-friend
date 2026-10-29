@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
-import { extractOrmBlocks, detectRawDbUsage, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
+import { extractOrmBlocks, detectRawDbUsage, extractSchemaFiles, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
 import { analytics } from '../utils/analytics'
 import './AgentScanner.css'
 
@@ -49,7 +49,11 @@ export default function AgentScanner() {
   const [selected, setSelected] = useState<number | null>(null)
   const [scanModel, setScanModel] = useState('')
   const [visuals, setVisuals] = useState<Record<number, { loading: boolean; url: string }>>({})
+  const [modelTier, setModelTier] = useState<'balanced' | 'deep' | 'economy'>('balanced')
+  const [economyConsent, setEconomyConsent] = useState(false)
+  const [scanDuration, setScanDuration] = useState<number | null>(null)
   const rawRef = useRef('')
+  const startTimeRef = useRef<number>(0)
 
   function reset() {
     setFindings([])
@@ -59,6 +63,7 @@ export default function AgentScanner() {
     setSelected(null)
     setScanModel('')
     setVisuals({})
+    setScanDuration(null)
     rawRef.current = ''
   }
 
@@ -107,6 +112,7 @@ export default function AgentScanner() {
     if (!repoUrl.trim()) return
     setLoading(true)
     reset()
+    startTimeRef.current = Date.now()
     setProgress('Connecting to GitHub...')
     analytics.scanGithub()
 
@@ -114,7 +120,7 @@ export default function AgentScanner() {
       const res = await fetch('/api/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: repoUrl.trim() })
+        body: JSON.stringify({ url: repoUrl.trim(), model: modelTier })
       })
       await readAgentStream(res)
       if (rawRef.current) finalise()
@@ -130,11 +136,12 @@ export default function AgentScanner() {
     if (!files?.length) return
     setLoading(true)
     reset()
+    startTimeRef.current = Date.now()
     setProgress('Reading files...')
 
     const sourceFiles = Array.from(files).filter(f => {
       const path = f.webkitRelativePath || f.name
-      return /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/.test(f.name)
+      return /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs|prisma)$/.test(f.name)
         && !path.includes('node_modules')
         && !path.includes('/vendor/')
         && !path.includes('/target/')
@@ -174,10 +181,15 @@ export default function AgentScanner() {
     setProgress(`Found database queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
 
     try {
+      const schemaFiles = extractSchemaFiles(rawContents)
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: extracted.map(f => ({ path: f.path, content: f.content })) })
+        body: JSON.stringify({
+          files: extracted.map(f => ({ path: f.path, content: f.content })),
+          schemaFiles,
+          model: modelTier
+        })
       })
       await readAgentStream(res)
       if (rawRef.current) finalise()
@@ -190,15 +202,23 @@ export default function AgentScanner() {
   }
 
   function finalise() {
-    const parsed: AgentFinding[] = JSON.parse(cleanJson(rawRef.current))
+    let parsed: AgentFinding[]
+    try {
+      parsed = JSON.parse(cleanJson(rawRef.current))
+    } catch {
+      setError('The scan output was too large to process fully — try Deep Analysis mode or scan a smaller folder.')
+      return
+    }
     const order = { critical: 0, high: 1, medium: 2, low: 3 }
     setFindings(parsed.sort((a, b) => order[a.severity] - order[b.severity]))
     setScanStatus(parsed.length > 0 ? 'issues_found' : 'clean')
+    setScanDuration(Math.round((Date.now() - startTimeRef.current) / 1000))
     analytics.scanResult(parsed.length)
     setProgress('')
   }
 
-  const canScan = mode === 'github' ? repoUrl.trim().length > 0 : !!files?.length
+  const inputReady = mode === 'github' ? repoUrl.trim().length > 0 : !!files?.length
+  const canScan = inputReady && (modelTier !== 'economy' || economyConsent)
 
   return (
     <div className="scanner">
@@ -228,6 +248,57 @@ export default function AgentScanner() {
         >
           Upload Folder
         </button>
+      </div>
+
+      {/* Model selector */}
+      <div className="model-selector">
+        <span className="model-selector-label">Analysis mode</span>
+        <div className="model-tiers">
+          <button
+            className={`model-tier-btn ${modelTier === 'balanced' ? 'active' : ''}`}
+            onClick={() => setModelTier('balanced')}
+            disabled={loading}
+            title="Muse Spark 1.3 — fast, accurate, your code is never used for training"
+          >
+            <span className="tier-name">Balanced</span>
+            <span className="tier-time">&lt; 60 sec</span>
+          </button>
+          <button
+            className={`model-tier-btn ${modelTier === 'deep' ? 'active' : ''}`}
+            onClick={() => setModelTier('deep')}
+            disabled={loading}
+            title="Muse Wonder 1.0 — deepest analysis, best for large or complex codebases"
+          >
+            <span className="tier-name">Deep Analysis</span>
+            <span className="tier-time">&lt; 120 sec</span>
+          </button>
+          <button
+            className={`model-tier-btn economy-btn ${modelTier === 'economy' ? 'active' : ''}`}
+            onClick={() => { setModelTier('economy'); setEconomyConsent(false) }}
+            disabled={loading}
+            title="Muse Spark 1.3 open-weight — same quality as Balanced, but code may be used to train Meta models"
+          >
+            <span className="tier-name">Economy</span>
+            <span className="tier-time">60–120 sec</span>
+          </button>
+        </div>
+
+        {modelTier === 'economy' && (
+          <div className="economy-consent">
+            <p className="economy-consent-warning">⚠ Code privacy notice</p>
+            <p className="economy-consent-body">
+              Economy mode uses <strong>Muse Spark 1.3 (open-weight)</strong>. Meta may use the code you submit to improve its models. Do not use this with work, client, or proprietary code.
+            </p>
+            <label className="economy-consent-check">
+              <input
+                type="checkbox"
+                checked={economyConsent}
+                onChange={e => setEconomyConsent(e.target.checked)}
+              />
+              <span>I understand — this code is non-sensitive and I consent to it being used for model training.</span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* GitHub input */}
@@ -279,6 +350,7 @@ export default function AgentScanner() {
               {scanStats
                 ? `Backend Friend scanned ${scanStats.queryCount} queries across ${scanStats.fileCount} files and found no N+1 queries, missing indexes, or inefficient operations.`
                 : 'Backend Friend analyzed this codebase and found no database issues.'}
+              {scanDuration != null && <span className="status-duration"> Completed in {scanDuration}s.</span>}
             </p>
           </div>
         </div>
@@ -324,11 +396,10 @@ export default function AgentScanner() {
                 ? <span key={s} className={`summary-chip severity-${s}`}>{count} {s}</span>
                 : null
             })}
-            {scanModel && (
-              <span className="scan-model-attribution">
-                Analyzed by <span className="attribution-model">{scanModel}</span>
-              </span>
-            )}
+            <span className="summary-meta">
+              {scanDuration != null && <span className="scan-duration">⏱ {scanDuration}s</span>}
+              {scanModel && <span className="scan-model-attribution">Analyzed by <span className="attribution-model">{scanModel}</span></span>}
+            </span>
           </div>
 
           <div className="findings-list">

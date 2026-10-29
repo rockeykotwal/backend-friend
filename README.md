@@ -55,12 +55,17 @@ Full-depth support across all 8 languages — smart block extraction (only ORM c
 
 ## Meta Models Used
 
-| Model | Role |
-|---|---|
-| `muse-spark-1.3-contributor` | Core ORM analysis + agentic orchestration |
-| `muse-wonder-1.0` | Large codebase fallback — auto-swaps in above 80K tokens |
-| `muse-image-1.0` | Before/after execution plan diagram |
-| `muse-voice-transcribe-1.0` | Voice-to-query input |
+Backend Friend uses four Meta models, each chosen for a specific job. Full specs at [dev.meta.ai/docs/models](https://dev.meta.ai/docs/models).
+
+| Mode | Model | Role | Privacy |
+|---|---|---|---|
+| **Balanced** *(default)* | [`muse-spark-1.3`](https://dev.meta.ai/docs/models) | Core analysis + agentic scan — fast, accurate, handles most codebases | Code never used for training |
+| **Deep Analysis** | [`muse-wonder-1.0`](https://dev.meta.ai/docs/models) | Large repos, subtle multi-file bugs, complex architecture — Meta's most capable API model | Code never used for training |
+| **Economy** *(opt-in)* | [`muse-spark-1.3-contributor`](https://dev.meta.ai/docs/models) | Same quality as Balanced — open-weight variant, fraction of the cost | ⚠ Meta may use submitted code to train future models. Explicit consent required. |
+| — | [`muse-image-1.0`](https://dev.meta.ai/docs/models) | Before/after query execution plan diagram | — |
+| — | [`muse-voice-transcribe-1.0`](https://dev.meta.ai/docs/models) | Voice-to-query input | — |
+
+Economy mode is gated behind an explicit consent checkbox in the UI — it is never the default and never a silent fallback. All three text models share a 1M token context window.
 
 ---
 
@@ -174,7 +179,7 @@ backend-friend/
         └── analyze.contract.test.ts  # Layer B — API contract tests (manual)
 ```
 
-All API routes stream responses via Server-Sent Events. The agent auto-selects `muse-wonder-1.0` for large inputs (80K+ tokens) and `muse-spark-1.3-contributor` for everything else.
+All API routes stream responses via Server-Sent Events. The analysis model is user-selectable (Balanced / Deep Analysis / Economy) and passed per-request — no silent auto-switching.
 
 ---
 

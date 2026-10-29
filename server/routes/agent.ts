@@ -1,19 +1,25 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client.js'
+import { metaClient, MODELS, MODEL_TIERS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|getRepository|selectFrom|insertInto|updateTable|deleteFrom|em\.(find|persist|flush)|Model\.query|\$queryRaw|\$executeRaw|session\.(query|execute)|db\.session|\.objects\.(filter|get|all|create|update|delete)|joinedload|subqueryload|selectinload|select_related|prefetch_related|cursor\.execute|db\.(Find|First|Where|Preload|Joins|Create|Save|Delete|Count|Query|QueryRow|Get|Select|NamedExec)\(|NewSelect\(|NewInsert\(|createQuery\(|@Query|@Select|@Insert|@Update|@Delete|ActiveRecord|\$em->|\$qb->|DbContext|ToListAsync|FromSqlRaw|diesel::|sqlx::query|SeaORM|Entity::find|collection\.(find|find_one|insert_one|update_one|delete_one|aggregate|Find|FindOne|InsertOne|UpdateOne|DeleteOne|Aggregate)\(|MongoEngine|pymongo|motor\.motor/i
 
 export async function agentHandler(req: Request, res: Response) {
-  const { files } = req.body as { files: Array<{ path: string; content: string }> }
+  const { files, schemaFiles, model: modelTier } = req.body as {
+    files: Array<{ path: string; content: string }>
+    schemaFiles?: Array<{ path: string; content: string }>
+    model?: string
+  }
   if (!files?.length) return res.status(400).json({ error: 'files array is required' })
 
   const ormFiles = files.filter(f => ORM_PATTERNS.test(f.content))
   if (!ormFiles.length) return res.status(200).json({ findings: [], message: 'No database queries detected' })
 
-  const fileBundle = ormFiles.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
-  const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4
-  const model = inputTokenEstimate > 80_000 ? MODELS.wonder : MODELS.spark
+  const schemaPart = schemaFiles?.length
+    ? schemaFiles.map(f => `// SCHEMA: ${f.path}\n${f.content}`).join('\n\n---\n\n') + '\n\n===\n\n'
+    : ''
+  const fileBundle = schemaPart + ormFiles.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
+  const model = MODEL_TIERS[modelTier ?? ''] ?? MODELS.balanced
 
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
@@ -32,7 +38,7 @@ export async function agentHandler(req: Request, res: Response) {
         { role: 'user', content: fileBundle }
       ],
       stream: true,
-      max_tokens: 10000
+      max_tokens: 32000
     })
 
     for await (const chunk of stream) {
