@@ -9,7 +9,7 @@ export async function agentHandler(req: Request, res: Response) {
   if (!files?.length) return res.status(400).json({ error: 'files array is required' })
 
   const ormFiles = files.filter(f => ORM_PATTERNS.test(f.content))
-  if (!ormFiles.length) return res.status(200).json({ findings: [], message: 'No ORM queries detected' })
+  if (!ormFiles.length) return res.status(200).json({ findings: [], message: 'No database queries detected' })
 
   const fileBundle = ormFiles.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
   const inputTokenEstimate = (fileBundle.length + AGENT_SYSTEM_PROMPT.length) / 4

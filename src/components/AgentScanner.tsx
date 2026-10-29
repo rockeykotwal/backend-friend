@@ -23,6 +23,19 @@ function cleanJson(raw: string): string {
   return m ? m[1] : raw.trim()
 }
 
+function langFromPath(filePath: string): string {
+  if (/\.(ts|tsx)$/.test(filePath)) return 'typescript'
+  if (/\.(js|jsx|mjs|cjs)$/.test(filePath)) return 'javascript'
+  if (/\.py$/.test(filePath)) return 'python'
+  if (/\.go$/.test(filePath)) return 'go'
+  if (/\.(java|kt)$/.test(filePath)) return 'java'
+  if (/\.rb$/.test(filePath)) return 'ruby'
+  if (/\.php$/.test(filePath)) return 'php'
+  if (/\.cs$/.test(filePath)) return 'csharp'
+  if (/\.rs$/.test(filePath)) return 'rust'
+  return 'sql'
+}
+
 export default function AgentScanner() {
   const [mode, setMode] = useState<'github' | 'upload'>('github')
   const [repoUrl, setRepoUrl] = useState('')
@@ -158,7 +171,7 @@ export default function AgentScanner() {
       queryCount: extracted.reduce((s, f) => s + f.ormHitCount, 0),
       detectedLanguages: [...new Set(extracted.map(f => f.detectedLanguage))],
     })
-    setProgress(`Found ORM queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
+    setProgress(`Found database queries in ${extracted.length} files (${totalExtracted} relevant lines from ${totalOriginal.toLocaleString()} total) — analysing...`)
 
     try {
       const res = await fetch('/api/agent', {
@@ -261,11 +274,11 @@ export default function AgentScanner() {
         <div className="scan-status-card status-clean">
           <span className="status-icon">✓</span>
           <div>
-            <p className="status-title">No ORM issues found</p>
+            <p className="status-title">No database issues found</p>
             <p className="status-body">
               {scanStats
-                ? `Backend Friend scanned ${scanStats.queryCount} queries across ${scanStats.fileCount} files and found no N+1 queries, missing indexes, or inefficient joins.`
-                : 'Backend Friend analyzed this codebase and found no ORM issues.'}
+                ? `Backend Friend scanned ${scanStats.queryCount} queries across ${scanStats.fileCount} files and found no N+1 queries, missing indexes, or inefficient operations.`
+                : 'Backend Friend analyzed this codebase and found no database issues.'}
             </p>
           </div>
         </div>
@@ -275,9 +288,9 @@ export default function AgentScanner() {
         <div className="scan-status-card status-unsupported">
           <span className="status-icon">!</span>
           <div>
-            <p className="status-title">ORM not supported yet</p>
+            <p className="status-title">Database library not supported yet</p>
             <p className="status-body">
-              This project appears to query a database, but not through an ORM Backend Friend supports.
+              This project accesses a database, but not through a library Backend Friend currently supports.
             </p>
             <p className="status-supported">
               Supported: {LANGUAGE_GROUPS.map(g => g.language).join(', ')}
@@ -293,8 +306,8 @@ export default function AgentScanner() {
             <p className="status-title">No database queries found</p>
             <p className="status-body">
               {scanStats?.fileCount
-                ? `Backend Friend scanned ${scanStats.fileCount} files and found no database or ORM usage, so there's nothing to analyze.`
-                : "Backend Friend found no database or ORM usage in this codebase."}
+                ? `Backend Friend scanned ${scanStats.fileCount} files and found no database usage, so there's nothing to analyze.`
+                : 'Backend Friend found no database usage in this codebase.'}
               {' '}This is expected for frontend apps, libraries, and CLI tools.
             </p>
           </div>
@@ -338,6 +351,7 @@ export default function AgentScanner() {
                     finding={f}
                     visualUrl={visuals[i]?.url}
                     visualLoading={visuals[i]?.loading}
+                    lang={langFromPath(f.file)}
                   />
                   {f.fixed_query !== 'N/A' && !visuals[i]?.url && !visuals[i]?.loading && (
                     <button className="btn-generate-visual" onClick={() => generateVisual(f, i)}>
