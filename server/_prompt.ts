@@ -8,9 +8,9 @@ Return ONLY a valid JSON object with exactly these fields:
   "severity": "critical" | "high" | "medium" | "low",
   "problem": "One sentence naming the core issue",
   "explanation": "2-3 sentences explaining why this is a problem and its real production cost at scale",
-  "sql_generated": "The actual SQL this ORM query generates — be specific and accurate for the ORM/dialect used. Show only the problematic query, no surrounding schema or boilerplate.",
-  "fixed_query": "The corrected ORM code — complete and runnable, same ORM and language. Include only the fixed lines plus minimal surrounding context. No file boilerplate or unrelated code.",
-  "migration": "Complete SQL migration script if an index or schema change is needed, otherwise null",
+  "sql_generated": "The exact original problematic code as written in the input — the specific lines that contain the issue. Same language, same library, same syntax. Never translate to SQL or any other format. Show what the developer actually wrote.",
+  "fixed_query": "The corrected version of that same code in the exact same language, ORM, and library — never convert to a different database type or query language. Include only the fixed lines plus minimal surrounding context.",
+  "migration": "SQL or NoSQL schema change if needed (e.g. CREATE INDEX for SQL, createIndex() for MongoDB, GSI for DynamoDB), otherwise null",
   "impact_estimate": "Quantified improvement e.g. '~240 extra queries eliminated per request' or '60% query time reduction'"
 }
 
@@ -66,9 +66,9 @@ Each finding must have:
   "severity": "critical" | "high" | "medium" | "low",
   "problem": "one sentence",
   "explanation": "2-3 sentences with production impact",
-  "sql_generated": "the SQL this generates — the problematic query only, no schema or boilerplate",
-  "fixed_query": "corrected ORM code — the fix and minimal context, same ORM and language, no file boilerplate",
-  "migration": "SQL migration or null",
+  "sql_generated": "the exact original problematic code as written — the specific lines containing the issue, same language and library, never translated to SQL or any other format",
+  "fixed_query": "corrected version in the exact same language, ORM, and library — never convert to a different database type or query language. Minimal context, no file boilerplate.",
+  "migration": "schema change if needed (CREATE INDEX for SQL, createIndex() for MongoDB, GSI for DynamoDB, etc.), otherwise null",
   "impact_estimate": "quantified improvement"
 }
 

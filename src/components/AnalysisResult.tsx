@@ -8,6 +8,7 @@ interface Props {
   visualUrl?: string
   visualLoading?: boolean
   modelUsed?: string
+  lang?: string
 }
 
 const SEVERITY_LABEL: Record<Finding['severity'], string> = {
@@ -17,7 +18,7 @@ const SEVERITY_LABEL: Record<Finding['severity'], string> = {
   low: 'LOW'
 }
 
-export default function AnalysisResult({ finding, visualUrl, visualLoading, modelUsed }: Props) {
+export default function AnalysisResult({ finding, visualUrl, visualLoading, modelUsed, lang = 'typescript' }: Props) {
   return (
     <div className="result">
       <div className="result-header">
@@ -31,9 +32,9 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
       <p className="explanation">{finding.explanation}</p>
 
       <div className="code-sections">
-        <Section label="SQL Being Generated" code={finding.sql_generated} lang="sql" variant="bad" />
+        <Section label="Problematic Code" code={finding.sql_generated} lang={lang} variant="bad" />
         {finding.fixed_query !== 'N/A' && (
-          <Section label="Fixed ORM Query" code={finding.fixed_query} lang="typescript" variant="good" />
+          <Section label="Fixed Code" code={finding.fixed_query} lang={lang} variant="good" />
         )}
         {finding.migration && (
           <Section label="Migration Script" code={finding.migration} lang="sql" variant="neutral" />
