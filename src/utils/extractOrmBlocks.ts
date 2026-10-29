@@ -33,7 +33,7 @@ const SKIP_PATTERNS: RegExp[] = [
 
 // ---------------------------------------------------------------------------
 // Node.js (deep) — Prisma, TypeORM, Sequelize, Drizzle, MikroORM, Mongoose,
-//                  Knex, Kysely, Objection.js, Waterline, Bookshelf
+//                  Knex, Kysely, Objection.js, Waterline, Bookshelf, DynamoDB
 // ---------------------------------------------------------------------------
 const NODEJS_PATTERNS: RegExp[] = [
   /\.(findMany|findFirst|findUnique|findUniqueOrThrow|findFirstOrThrow|create|createMany|createManyAndReturn|update|updateMany|upsert|delete|deleteMany|aggregate|groupBy|count|\$queryRaw|\$executeRaw|\$transaction)\s*\(/,
@@ -53,10 +53,15 @@ const NODEJS_PATTERNS: RegExp[] = [
   /new\s+\w+Model\s*\(\)|\.forge\s*\(|\.fetchAll\s*\(|\.fetch\s*\(|\.save\s*\(|\.destroy\s*\(/,
   /\$\{.*?(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)/i,
   /`\s*(SELECT|INSERT|UPDATE|DELETE)\s+/i,
+  // DynamoDB — AWS SDK v3 (client-dynamodb + lib-dynamodb commands)
+  /new\s+(ScanCommand|QueryCommand|GetItemCommand|PutItemCommand|UpdateItemCommand|DeleteItemCommand|BatchGetItemCommand|BatchWriteItemCommand|TransactGetItemsCommand|TransactWriteItemsCommand|GetCommand|PutCommand|UpdateCommand|DeleteCommand|BatchGetCommand|BatchWriteCommand)\s*\(/,
+  // Dynamoose
+  /dynamoose\.(model|Model)\s*\(/,
 ]
 
 // ---------------------------------------------------------------------------
-// Python (deep) — SQLAlchemy 1.x/2.0, Django ORM, Peewee, Tortoise, SQLModel
+// Python (deep) — SQLAlchemy 1.x/2.0, Django ORM, Peewee, Tortoise, SQLModel,
+//                 DynamoDB (boto3, PynamoDB)
 // ---------------------------------------------------------------------------
 const PYTHON_PATTERNS: RegExp[] = [
   // SQLAlchemy — session operations
@@ -87,10 +92,16 @@ const PYTHON_PATTERNS: RegExp[] = [
   /await\s+\w+\.(find_one|insert_one|update_one|delete_one|aggregate)\s*\(/,
   // MongoEngine — Document query API
   /\.objects\s*\(|\.objects\.(filter|get|first|all|only|exclude|order_by|limit|skip|count|aggregate|delete)\s*[(\s.]/,
+  // DynamoDB — boto3 resource + client
+  /boto3\.(resource|client)\s*\(\s*['"]dynamodb['"]/,
+  /dynamodb\.Table\s*\(/,
+  /\.(get_item|put_item|update_item|delete_item|batch_writer|transact_write|transact_get)\s*\(\s*(Key|Item|TableName)\s*=/,
+  // PynamoDB
+  /from\s+pynamodb\.|pynamodb\.(models|attributes|indexes)\./,
 ]
 
 // ---------------------------------------------------------------------------
-// Go (deep) — GORM, sqlx, Ent, bun, database/sql, sqlc
+// Go (deep) — GORM, sqlx, Ent, bun, database/sql, sqlc, DynamoDB
 // ---------------------------------------------------------------------------
 const GO_PATTERNS: RegExp[] = [
   // GORM — primary query methods
@@ -112,6 +123,12 @@ const GO_PATTERNS: RegExp[] = [
   // mongo-go-driver — MongoDB
   /collection\.(Find|FindOne|InsertOne|InsertMany|UpdateOne|UpdateMany|ReplaceOne|DeleteOne|DeleteMany|Aggregate|CountDocuments|Distinct|BulkWrite|Watch)\s*\(ctx/,
   /cursor\.(Next|Decode|All|Close)\s*\(ctx/,
+  // DynamoDB — AWS SDK v2 (aws-sdk-go-v2)
+  /"github\.com\/aws\/aws-sdk-go-v2\/service\/dynamodb"/,
+  /dynamodb\.(ScanInput|QueryInput|GetItemInput|PutItemInput|UpdateItemInput|DeleteItemInput|BatchGetItemInput|BatchWriteItemInput)\{/,
+  /svc\.(Scan|Query|GetItem|PutItem|UpdateItem|DeleteItem|BatchGetItem|BatchWriteItem)\s*\(ctx/,
+  // guregu/dynamo
+  /"github\.com\/guregu\/dynamo"|dynamo\.New\s*\(/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -150,6 +167,10 @@ const JAVA_PATTERNS: RegExp[] = [
   // Kotlin Exposed
   /\bSchemaUtils\.(create|drop)\s*\(|\bTransaction\.(exec)\s*\(/,
   /\.(selectAll|select|insert|update|deleteWhere|insertAndGetId|batchInsert|upsert)\s*\{/,
+  // DynamoDB — AWS SDK v2 for Java/Kotlin
+  /DynamoDbClient\b|DynamoDbEnhancedClient\b|AmazonDynamoDB\b/,
+  /@DynamoDbBean|@DynamoDbPartitionKey|@DynamoDbSortKey|@DynamoDbSecondaryPartitionKey/,
+  /(ScanRequest|QueryRequest|GetItemRequest|PutItemRequest|UpdateItemRequest|DeleteItemRequest)\.builder\s*\(\)/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -176,6 +197,9 @@ const RUBY_PATTERNS: RegExp[] = [
   // ActiveRecord — associations and counters
   /\.(has_many|has_one|belongs_to|has_and_belongs_to_many)\s+:/,
   /\.(counter_cache|touch|inverse_of)\s*:/,
+  // DynamoDB — aws-sdk-ruby
+  /Aws::DynamoDB::/,
+  /\.(get_item|put_item|query|scan|update_item|delete_item|batch_get_item|batch_write_item|transact_write|transact_get)\s*\(\s*(table_name:|key:)/,
   // Sequel — dataset API
   /DB\s*\[|\bDB\.(from|select|insert|update|delete)\s*\(/,
   /\.dataset\b|\.dataset\.(where|select|join|left_join|group|order|limit|offset|all|first|get|count|insert|update|delete)\s*[(\s]/,
@@ -204,6 +228,9 @@ const PHP_PATTERNS: RegExp[] = [
   /\$(?:qb|queryBuilder|this->qb)->(select|addSelect|from|leftJoin|innerJoin|join|where|andWhere|orWhere|setParameter|setParameters|orderBy|addOrderBy|groupBy|addGroupBy|having|andHaving|orHaving|setMaxResults|setFirstResult|getQuery|getResult|getSingleResult|getOneOrNullResult|getScalarResult|getSingleScalarResult|execute|getSQL)\s*\(/,
   // Doctrine Repository methods
   /\$(?:repo|repository|this->repo)->(find|findAll|findBy|findOneBy|findAndCount|count|matching|createQueryBuilder)\s*\(/,
+  // DynamoDB — aws/aws-sdk-php
+  /Aws\\DynamoDb\\DynamoDbClient|DynamoDbClient::/,
+  /->(getItem|putItem|query|scan|updateItem|deleteItem|batchGetItem|batchWriteItem)\s*\(\s*\[/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -229,6 +256,11 @@ const CSHARP_PATTERNS: RegExp[] = [
   // Transactions
   /\b(?:context|db)\.(Database\.BeginTransaction|Database\.BeginTransactionAsync)\s*\(/,
   /using\s+var\s+\w+\s*=\s*(?:context|db)\.Database\.BeginTransaction/,
+  // DynamoDB — AWSSDK.DynamoDBv2
+  /AmazonDynamoDBClient|IDynamoDBContext|DynamoDBContext\b/,
+  /new\s+(ScanRequest|QueryRequest|GetItemRequest|PutItemRequest|UpdateItemRequest|DeleteItemRequest)\s*\(/,
+  /\.(ScanAsync|QueryAsync|GetItemAsync|PutItemAsync|UpdateItemAsync|DeleteItemAsync|BatchGetItemAsync|BatchWriteItemAsync|TransactGetItemsAsync|TransactWriteItemsAsync)\s*\(/,
+  /Table\.LoadTable\s*\(/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -267,6 +299,9 @@ const RUST_PATTERNS: RegExp[] = [
   // SeaORM — execution
   /\.(all|one|count|exists|insert|update|save|delete|exec_with_returning)\s*\(\s*(?:db|conn|txn)/,
   /\bTxnErr\b|db\.transaction\s*\(/,
+  // DynamoDB — aws-sdk-dynamodb (Rust)
+  /aws_sdk_dynamodb::|use\s+aws_sdk_dynamodb\b/,
+  /client\.(scan|query|get_item|put_item|update_item|delete_item|batch_get_item|batch_write_item)\s*\(\)/,
 ]
 
 // ---------------------------------------------------------------------------
@@ -283,42 +318,42 @@ export const LANGUAGE_GROUPS: LanguageGroup[] = [
   {
     language: 'Node.js',
     depth: 'full',
-    orms: ['Prisma', 'TypeORM', 'Sequelize', 'Drizzle', 'MikroORM', 'Mongoose', 'MongoDB (native)', 'Knex', 'Kysely', 'Objection.js', 'Waterline', 'Bookshelf'],
+    orms: ['Prisma', 'TypeORM', 'Sequelize', 'Drizzle', 'MikroORM', 'Mongoose', 'MongoDB (native)', 'Knex', 'Kysely', 'Objection.js', 'Waterline', 'Bookshelf', 'DynamoDB'],
   },
   {
     language: 'Python',
     depth: 'full',
-    orms: ['SQLAlchemy', 'Django ORM', 'Peewee', 'Tortoise ORM', 'SQLModel', 'PyMongo', 'Motor', 'MongoEngine'],
+    orms: ['SQLAlchemy', 'Django ORM', 'Peewee', 'Tortoise ORM', 'SQLModel', 'PyMongo', 'Motor', 'MongoEngine', 'DynamoDB (boto3)', 'PynamoDB'],
   },
   {
     language: 'Go',
     depth: 'full',
-    orms: ['GORM', 'sqlx', 'Ent', 'bun', 'database/sql', 'sqlc', 'mongo-go-driver'],
+    orms: ['GORM', 'sqlx', 'Ent', 'bun', 'database/sql', 'sqlc', 'mongo-go-driver', 'DynamoDB'],
   },
   {
     language: 'Java',
     depth: 'full',
-    orms: ['Hibernate/JPA', 'Spring Data', 'MyBatis', 'jOOQ'],
+    orms: ['Hibernate/JPA', 'Spring Data', 'MyBatis', 'jOOQ', 'DynamoDB'],
   },
   {
     language: 'Ruby',
     depth: 'full',
-    orms: ['ActiveRecord', 'Sequel'],
+    orms: ['ActiveRecord', 'Sequel', 'DynamoDB'],
   },
   {
     language: 'PHP',
     depth: 'full',
-    orms: ['Eloquent', 'Doctrine'],
+    orms: ['Eloquent', 'Doctrine', 'DynamoDB'],
   },
   {
     language: 'C#',
     depth: 'full',
-    orms: ['Entity Framework Core', 'Dapper'],
+    orms: ['Entity Framework Core', 'Dapper', 'DynamoDB'],
   },
   {
     language: 'Rust',
     depth: 'full',
-    orms: ['Diesel', 'SQLx', 'SeaORM'],
+    orms: ['Diesel', 'SQLx', 'SeaORM', 'DynamoDB'],
   },
 ]
 
