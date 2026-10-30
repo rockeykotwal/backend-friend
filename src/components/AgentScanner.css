@@ -35,7 +35,8 @@
 }
 .scan-tab:first-child { border-right: 1px solid var(--border); }
 .scan-tab.active { background: var(--accent); color: #fff; }
-.scan-tab:not(.active):hover { background: var(--surface); color: var(--text); }
+.scan-tab:not(.active):hover:not(:disabled) { background: var(--surface); color: var(--text); }
+.scan-tab:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* GitHub URL input */
 .github-url-input {
@@ -100,8 +101,24 @@
   cursor: pointer; font-size: 13px; color: var(--muted);
   transition: border-color 0.15s;
 }
-.file-picker:hover { border-color: var(--accent); color: var(--text); }
+.file-picker:hover:not(.disabled) { border-color: var(--accent); color: var(--text); }
+.file-picker.disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
 .file-picker input { display: none; }
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.7;
+  margin-top: -8px;
+}
+.upload-hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
 
 .btn-scan { background: var(--accent); color: #fff; }
 
