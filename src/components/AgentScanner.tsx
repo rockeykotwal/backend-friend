@@ -44,7 +44,7 @@ const LANG_TO_DISPLAY: Record<string, string> = {
 
 export default function AgentScanner() {
   const [mode, setMode] = useState<'github' | 'upload'>('github')
-  const [repoUrl, setRepoUrl] = useState('')
+  const [repoUrl, setRepoUrl] = useState('https://github.com/gothinkster/node-express-realworld-example-app')
   const [files, setFiles] = useState<FileList | null>(null)
   const [loading, setLoading] = useState(false)
   const [findings, setFindings] = useState<AgentFinding[]>([])
@@ -347,20 +347,39 @@ export default function AgentScanner() {
 
       {/* GitHub input */}
       {mode === 'github' && (
-        <div className="file-row">
-          <input
-            className="github-url-input"
-            type="text"
-            placeholder="https://github.com/owner/repo"
-            value={repoUrl}
-            onChange={e => setRepoUrl(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !loading && canScan && scanGithub()}
-            disabled={loading}
-          />
-          <button className="btn-scan" onClick={scanGithub} disabled={loading || !canScan}>
-            {loading ? 'Scanning...' : 'Scan →'}
-          </button>
-        </div>
+        <>
+          <div className="file-row">
+            <input
+              className="github-url-input"
+              type="text"
+              placeholder="https://github.com/owner/repo"
+              value={repoUrl}
+              onChange={e => setRepoUrl(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !loading && canScan && scanGithub()}
+              disabled={loading}
+            />
+            <button className="btn-scan" onClick={scanGithub} disabled={loading || !canScan}>
+              {loading ? 'Scanning...' : 'Scan →'}
+            </button>
+          </div>
+          <div className="preset-repos">
+            <span className="preset-repos-label">Try with:</span>
+            {[
+              { label: 'Node.js · Express + Sequelize', url: 'https://github.com/gothinkster/node-express-realworld-example-app' },
+              { label: 'Python · Django', url: 'https://github.com/healthchecks/healthchecks' },
+              { label: 'Go · Gin + GORM', url: 'https://github.com/gothinkster/golang-gin-realworld-example-app' },
+            ].map(p => (
+              <button
+                key={p.url}
+                className={`preset-repo-btn${repoUrl === p.url ? ' active' : ''}`}
+                onClick={() => setRepoUrl(p.url)}
+                disabled={loading}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Upload input */}

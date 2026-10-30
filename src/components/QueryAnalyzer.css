@@ -4,19 +4,53 @@
 
 .lang-pills { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.try-example {
-  font-size: 12px;
-  color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  font-weight: 500;
-  opacity: 0.8;
-  transition: opacity 0.15s;
-  white-space: nowrap;
+.examples-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
-.try-example:hover { opacity: 1; }
+
+.examples-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.example-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.example-btn:hover:not(:disabled) { border-color: var(--accent); }
+.example-btn.active {
+  border-color: var(--accent);
+  background: rgba(47,129,247,0.08);
+}
+.example-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.example-lang {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.example-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
 
 .lang-pill {
   font-size: 11px;
