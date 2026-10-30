@@ -16,23 +16,110 @@ export interface Finding {
   impact_estimate: string
 }
 
-const EXAMPLE_QUERY = `const users = await prisma.user.findMany()
+interface Example {
+  label: string
+  lang: string
+  query: string
+  schema: string
+}
+
+const EXAMPLES: Example[] = [
+  {
+    label: 'Prisma N+1',
+    lang: 'Node.js',
+    query: `const users = await prisma.user.findMany()
 for (const user of users) {
   const posts = await prisma.post.findMany({ where: { authorId: user.id } })
-}`
-
-const EXAMPLE_SCHEMA = `model User {
+  console.log(user.name, posts.length)
+}`,
+    schema: `model User {
   id    Int    @id @default(autoincrement())
   name  String
+  email String @unique
   posts Post[]
 }
 
 model Post {
-  id       Int    @id @default(autoincrement())
-  title    String
-  authorId Int
-  author   User   @relation(fields: [authorId], references: [id])
-}`
+  id        Int    @id @default(autoincrement())
+  title     String
+  body      String
+  authorId  Int
+  author    User   @relation(fields: [authorId], references: [id])
+}`,
+  },
+  {
+    label: 'Unbounded query',
+    lang: 'Python',
+    query: `def admin_export():
+    orders = Order.objects.all().order_by('-created_at')
+    return [
+        {
+            'id': o.id,
+            'user': o.user_id,
+            'total': str(o.total),
+            'status': o.status,
+        }
+        for o in orders
+    ]`,
+    schema: `class Order(models.Model):
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'orders'`,
+  },
+  {
+    label: 'Missing transaction',
+    lang: 'Go',
+    query: `func TransferBalance(db *gorm.DB, fromID, toID uint, amount float64) error {
+    var from Account
+    db.First(&from, fromID)
+
+    var to Account
+    db.First(&to, toID)
+
+    db.Model(&from).Update("balance", from.Balance-amount)
+    db.Model(&to).Update("balance", to.Balance+amount)
+
+    return nil
+}`,
+    schema: `type Account struct {
+    gorm.Model
+    UserID   uint
+    Balance  float64
+    Currency string
+}`,
+  },
+  {
+    label: 'SQLAlchemy index',
+    lang: 'Python',
+    query: `def get_user_dashboard(email: str):
+    user = session.query(User).filter(User.email == email).first()
+
+    transactions = session.query(Transaction)\\
+        .filter(Transaction.user_id == user.id)\\
+        .order_by(Transaction.created_at.desc())\\
+        .all()
+
+    return {'user': user, 'transactions': transactions}`,
+    schema: `class User(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), nullable=False)
+    name = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class Transaction(Base):
+    __tablename__ = 'transactions'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    amount = Column(Numeric(10, 2))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(20))`,
+  },
+]
 
 function cleanJson(raw: string): string {
   const m = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
@@ -40,8 +127,9 @@ function cleanJson(raw: string): string {
 }
 
 export default function QueryAnalyzer() {
-  const [query, setQuery] = useState('')
-  const [schema, setSchema] = useState('')
+  const [query, setQuery] = useState(EXAMPLES[0].query)
+  const [schema, setSchema] = useState(EXAMPLES[0].schema)
+  const [activeExample, setActiveExample] = useState<number | null>(0)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<Finding | null>(null)
   const [error, setError] = useState('')
@@ -140,20 +228,23 @@ export default function QueryAnalyzer() {
 
   const LANGS = ['Node.js', 'Python', 'Go', 'Java', 'Ruby', 'PHP', 'C#', 'Rust']
 
+  function loadExample(index: number) {
+    const ex = EXAMPLES[index]
+    setQuery(ex.query)
+    setSchema(ex.schema)
+    setActiveExample(index)
+    setResult(null)
+    setError('')
+    setVisualUrl('')
+  }
+
   return (
     <div className="analyzer">
       <div className="lang-pills-row">
         <div className="lang-pills">
           {LANGS.map(l => <span key={l} className="lang-pill">{l}</span>)}
         </div>
-        <button
-          className="try-example"
-          onClick={() => { setQuery(EXAMPLE_QUERY); setSchema(EXAMPLE_SCHEMA) }}
-        >
-          Try an example →
-        </button>
       </div>
-
       <div className="inputs">
         <div className="input-group">
           <div className="input-label-row">
@@ -185,6 +276,21 @@ export default function QueryAnalyzer() {
             rows={12}
           />
         </div>
+      </div>
+
+      <div className="examples-row">
+        <span className="examples-label">Try an example:</span>
+        {EXAMPLES.map((ex, i) => (
+          <button
+            key={i}
+            className={`example-btn${activeExample === i ? ' active' : ''}`}
+            onClick={() => loadExample(i)}
+            disabled={loading}
+          >
+            <span className="example-lang">{ex.lang}</span>
+            <span className="example-name">{ex.label}</span>
+          </button>
+        ))}
       </div>
 
       <button
