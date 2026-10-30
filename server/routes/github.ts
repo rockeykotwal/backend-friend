@@ -5,11 +5,27 @@ import { detectRawDbUsage, extractSchemaFiles } from '../../src/utils/extractOrm
 
 const BACKEND_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/
 const SKIP_PATHS = /node_modules|\/vendor\/|\/target\/|\.git\/|__pycache__|\/dist\/|\/build\/|\.next\/|\.nuxt\/|\/coverage\//
+const SENSITIVE_FILES = /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key|p12|pfx|p8|jks|keystore|secret)$|(?:^|\/)(?:id_rsa|id_ed25519|id_dsa|\.netrc|\.htpasswd)$|(?:^|\/)(?:secrets?|credentials?)\.(?:json|ya?ml)$/i
+const PRIORITY_DIRS = /\/(?:routes?|models?|services?|repositor(?:y|ies)|queries|dao|db|database|store|controllers?|handlers?)\//i
 const MAX_FILES = 150
 const MAX_FILE_BYTES = 100_000  // skip files > 100KB
 const CONTEXT_LINES = 25
+const FETCH_BATCH_SIZE = 20
 
 const ORM_PATTERNS = /prisma|typeorm|sequelize|drizzle|mikroorm|mongoose|knex|kysely|objection|waterline|bookshelf|findMany|findFirst|findUnique|findAll|findOne|findById|findByPk|findOrCreate|createQueryBuilder|\$queryRaw|\$executeRaw|session\.(query|execute)|db\.session|\.objects\.(filter|get|all|create|update|delete)|joinedload|subqueryload|selectinload|select_related|prefetch_related|cursor\.execute|db\.(Find|First|Where|Preload|Joins|Create|Save|Delete|Count|Query|QueryRow|Get|Select|NamedExec)\(|NewSelect\(|@Query|@Select|@Insert|@Update|@Delete|ActiveRecord|\$em->|\$qb->|DbContext|ToListAsync|FromSqlRaw|diesel::|sqlx::query|SeaORM|Entity::find|collection\.(find|find_one|insert_one|update_one|delete_one|aggregate|Find|FindOne|InsertOne|UpdateOne|DeleteOne|Aggregate)\(|ScanCommand|QueryCommand|GetItemCommand|PutItemCommand|UpdateItemCommand|DeleteItemCommand|BatchGetItemCommand|BatchWriteItemCommand|GetCommand|PutCommand|UpdateCommand|DeleteCommand|BatchGetCommand|BatchWriteCommand|dynamoose\.model|DynamoDbClient|DynamoDbEnhancedClient|AmazonDynamoDB|@DynamoDbBean|@DynamoDbPartitionKey|Aws::DynamoDB|DynamoDbClient::|dynamodb\.Table\(|boto3\.(resource|client).*dynamodb|pynamodb|aws_sdk_dynamodb::|guregu\/dynamo|dynamodb\.(ScanInput|QueryInput|GetItemInput|PutItemInput)/i
+
+async function fetchInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  fn: (item: T) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = await Promise.allSettled(items.slice(i, i + batchSize).map(fn))
+    results.push(...batch)
+  }
+  return results
+}
 
 function parseGithubUrl(url: string): { owner: string; repo: string; branch: string } | null {
   const m = url.trim().match(/github\.com\/([^/\s]+)\/([^/\s?#]+?)(?:\.git)?(?:\/tree\/([^/\s?#]+))?(?:[/?#].*)?$/)
@@ -95,12 +111,20 @@ export async function githubHandler(req: Request, res: Response) {
       truncated: boolean
     }
 
-    const sourceFiles = tree.filter(f =>
-      f.type === 'blob' &&
-      BACKEND_EXTENSIONS.test(f.path) &&
-      !SKIP_PATHS.test(f.path) &&
-      (f.size ?? 0) < MAX_FILE_BYTES
-    ).slice(0, MAX_FILES)
+    const sourceFiles = tree
+      .filter(f =>
+        f.type === 'blob' &&
+        BACKEND_EXTENSIONS.test(f.path) &&
+        !SKIP_PATHS.test(f.path) &&
+        !SENSITIVE_FILES.test(f.path) &&
+        (f.size ?? 0) < MAX_FILE_BYTES
+      )
+      .sort((a, b) => {
+        const aHigh = PRIORITY_DIRS.test('/' + a.path) ? 0 : 1
+        const bHigh = PRIORITY_DIRS.test('/' + b.path) ? 0 : 1
+        return aHigh - bHigh
+      })
+      .slice(0, MAX_FILES)
 
     if (!sourceFiles.length) throw new Error('No backend source files found in this repository.')
 
@@ -108,18 +132,18 @@ export async function githubHandler(req: Request, res: Response) {
       progress: `Found ${sourceFiles.length} source files${truncated ? ' (large repo — scanning top files)' : ''} — downloading...`
     })
 
-    // Fetch all files in parallel
-    const fetchResults = await Promise.allSettled(
-      sourceFiles.map(async f => {
-        const r = await fetch(
-          `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(f.path)}`,
-          { headers: ghHeaders }
-        )
+    const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`
+    const rawHeaders: Record<string, string> = { 'User-Agent': 'backend-friend' }
+    if (process.env.GITHUB_TOKEN) rawHeaders['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`
+
+    const fetchResults = await fetchInBatches(
+      sourceFiles,
+      FETCH_BATCH_SIZE,
+      async f => {
+        const r = await fetch(`${rawBase}/${f.path}`, { headers: rawHeaders })
         if (!r.ok) return null
-        const data = await r.json() as { content?: string; encoding?: string }
-        if (!data.content || data.encoding !== 'base64') return null
-        return { path: f.path, content: Buffer.from(data.content, 'base64').toString('utf-8') }
-      })
+        return { path: f.path, content: await r.text() }
+      }
     )
     const rawFiles = fetchResults
       .filter((r): r is PromiseFulfilledResult<{ path: string; content: string }> =>

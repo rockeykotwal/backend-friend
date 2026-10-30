@@ -10,6 +10,8 @@ interface AgentFinding extends Finding {
   line: number | null
 }
 
+const SENSITIVE_FILES = /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key|p12|pfx|p8|jks|keystore|secret)$|(?:^|\/)(?:id_rsa|id_ed25519|id_dsa|\.netrc|\.htpasswd)$|(?:^|\/)(?:secrets?|credentials?)\.(?:json|ya?ml)$/i
+
 type ScanStatus = 'idle' | 'issues_found' | 'clean' | 'unsupported_orm' | 'no_db_access'
 
 interface ScanStats {
@@ -37,7 +39,7 @@ function langFromPath(filePath: string): string {
 }
 
 const LANG_TO_DISPLAY: Record<string, string> = {
-  typescript: 'Node.js', javascript: 'Node.js',
+  nodejs: 'Node.js', typescript: 'Node.js', javascript: 'Node.js',
   python: 'Python', go: 'Go', java: 'Java',
   ruby: 'Ruby', php: 'PHP', csharp: 'C#', rust: 'Rust',
 }
@@ -172,6 +174,7 @@ export default function AgentScanner() {
         && !path.includes('node_modules')
         && !path.includes('/vendor/')
         && !path.includes('/target/')
+        && !SENSITIVE_FILES.test(path)
     })
 
     if (!sourceFiles.length) {
@@ -275,14 +278,16 @@ export default function AgentScanner() {
         <button
           className={`scan-tab ${mode === 'github' ? 'active' : ''}`}
           onClick={() => setMode('github')}
+          disabled={loading}
         >
           GitHub URL
         </button>
         <button
           className={`scan-tab ${mode === 'upload' ? 'active' : ''}`}
           onClick={() => setMode('upload')}
+          disabled={loading}
         >
-          Upload Folder
+          Local Repo
         </button>
       </div>
 
@@ -338,6 +343,7 @@ export default function AgentScanner() {
                 type="checkbox"
                 checked={economyConsent}
                 onChange={e => setEconomyConsent(e.target.checked)}
+                disabled={loading}
               />
               <span>I understand — this code is non-sensitive and I consent to it being used for model training.</span>
             </label>
@@ -384,21 +390,27 @@ export default function AgentScanner() {
 
       {/* Upload input */}
       {mode === 'upload' && (
-        <div className="file-row">
-          <label className="file-picker">
-            <input
-              type="file"
-              multiple
-              // @ts-expect-error — webkitdirectory is non-standard but supported in all major browsers
-              webkitdirectory=""
-              onChange={e => setFiles(e.target.files)}
-            />
-            {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select folder'}
-          </label>
-          <button className="btn-scan" onClick={scanUpload} disabled={loading || !canScan}>
-            {loading ? 'Scanning...' : 'Scan →'}
-          </button>
-        </div>
+        <>
+          <div className="file-row">
+            <label className={`file-picker${loading ? ' disabled' : ''}`}>
+              <input
+                type="file"
+                multiple
+                // @ts-expect-error — webkitdirectory is non-standard but supported in all major browsers
+                webkitdirectory=""
+                onChange={e => setFiles(e.target.files)}
+                disabled={loading}
+              />
+              {files ? `${files.length} file${files.length !== 1 ? 's' : ''} selected` : 'Select local repo'}
+            </label>
+            <button className="btn-scan" onClick={scanUpload} disabled={loading || !canScan}>
+              {loading ? 'Scanning...' : 'Scan →'}
+            </button>
+          </div>
+          <p className="upload-hint">
+            Upload your <code>src/</code> or <code>backend/</code> folder — not the project root. Sensitive files (.env, keys) are never read.
+          </p>
+        </>
       )}
 
       {(progress || loading) && (
