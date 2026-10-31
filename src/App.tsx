@@ -58,6 +58,7 @@ export default function App() {
 
       <footer className="footer">
         <span>Built with Meta AI · Muse Spark · Muse Wonder · Muse Image · Muse Voice</span>
+        <a href="https://rockeykotwal.in" target="_blank" rel="noreferrer">by Rockey Kotwal</a>
         <a href="https://github.com/rockeykotwal/backend-friend" target="_blank" rel="noreferrer">GitHub</a>
       </footer>
     </div>

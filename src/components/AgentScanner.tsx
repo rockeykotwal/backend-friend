@@ -468,19 +468,36 @@ export default function AgentScanner() {
 
       {findings.length > 0 && (
         <>
-          <div className="findings-summary">
-            <span>Found <strong>{findings.length}</strong> issue{findings.length !== 1 ? 's' : ''}</span>
-            {(['critical', 'high', 'medium', 'low'] as const).map(s => {
-              const count = findings.filter(f => f.severity === s).length
-              return count > 0
-                ? <span key={s} className={`summary-chip severity-${s}`}>{count} {s}</span>
-                : null
-            })}
-            <span className="summary-meta">
-              {scanDuration != null && <span className="scan-duration">⏱ {scanDuration}s</span>}
-              {scanModel && <span className="scan-model-attribution">Analyzed by <span className="attribution-model">{scanModel}</span></span>}
-            </span>
-          </div>
+          {(() => {
+            const counts = { critical: 0, high: 0, medium: 0, low: 0 }
+            findings.forEach(f => counts[f.severity]++)
+            const topFinding = findings.find(f => f.severity === 'critical') ?? findings.find(f => f.severity === 'high')
+            const bannerMod = counts.critical > 0 ? 'banner-critical' : counts.high > 0 ? 'banner-high' : 'banner-neutral'
+            return (
+              <div className={`scan-summary-banner ${bannerMod}`}>
+                <div className="banner-top">
+                  <div className="banner-headline">
+                    <span className="banner-count">{findings.length}</span>
+                    <span className="banner-count-label">issue{findings.length !== 1 ? 's' : ''} found</span>
+                  </div>
+                  <div className="banner-chips">
+                    {(['critical', 'high', 'medium', 'low'] as const).map(s =>
+                      counts[s] > 0
+                        ? <span key={s} className={`summary-chip severity-${s}`}>{counts[s]} {s}</span>
+                        : null
+                    )}
+                  </div>
+                </div>
+                {topFinding && topFinding.impact_estimate !== 'N/A' && (
+                  <p className="banner-impact">⚡ {topFinding.impact_estimate}</p>
+                )}
+                <div className="banner-meta">
+                  {scanDuration != null && <span>⏱ {scanDuration}s</span>}
+                  {scanModel && <span>· Analyzed by <span className="attribution-model">{scanModel}</span></span>}
+                </div>
+              </div>
+            )
+          })()}
 
           <div className="findings-list">
             {findings.map((f, i) => (
