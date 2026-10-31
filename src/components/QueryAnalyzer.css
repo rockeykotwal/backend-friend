@@ -91,12 +91,25 @@ label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: 
 .code-input::placeholder { color: var(--muted); opacity: 0.45; }
 .code-input.input-locked { opacity: 0.5; cursor: not-allowed; }
 
+.analyze-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .btn-analyze {
   background: var(--accent);
   color: #fff;
   width: fit-content;
   padding: 12px 28px;
   font-size: 15px;
+}
+
+.analyze-hint {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 .error {

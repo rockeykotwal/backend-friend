@@ -4,25 +4,81 @@
 .voice-error { font-size: 11px; color: var(--critical); }
 
 .voice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--surface);
   border: 1px solid var(--accent);
   color: var(--accent);
-  padding: 5px 12px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: var(--radius);
-  transition: all 0.15s;
+  border-radius: 20px;
+  transition: background 0.15s, color 0.15s, box-shadow 0.2s;
+  white-space: nowrap;
 }
-.voice-btn:hover:not(:disabled) { background: var(--accent); color: #fff; opacity: 1; }
 
+.voice-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(47,129,247,0.35);
+}
+
+/* Recording state — glowing red ring */
 .voice-btn.recording {
   background: rgba(248,81,73,0.1);
   border-color: var(--critical);
   color: var(--critical);
-  animation: pulse 1.2s ease-in-out infinite;
+  animation: rec-ring 1.4s ease-in-out infinite;
 }
 
-@keyframes pulse {
+@keyframes rec-ring {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(248,81,73,0.2); }
+  50%       { box-shadow: 0 0 0 5px rgba(248,81,73,0.35), 0 0 16px rgba(248,81,73,0.2); }
+}
+
+/* Pulsing red dot */
+.voice-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--critical);
+  flex-shrink: 0;
+  animation: dot-blink 1s ease-in-out infinite;
+}
+
+@keyframes dot-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50%       { opacity: 0.3; }
+}
+
+/* Transcribing state */
+.voice-btn.transcribing {
+  border-color: var(--muted);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* Bouncing dots */
+.voice-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.voice-dots span {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: dot-bounce 1.1s ease-in-out infinite;
+}
+
+.voice-dots span:nth-child(2) { animation-delay: 0.18s; }
+.voice-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes dot-bounce {
+  0%, 100% { transform: translateY(0);   opacity: 0.35; }
+  50%       { transform: translateY(-4px); opacity: 1; }
 }
