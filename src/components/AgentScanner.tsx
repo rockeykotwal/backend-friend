@@ -128,7 +128,7 @@ export default function AgentScanner() {
         if (payload.status) { setScanStatus(payload.status as ScanStatus); continue }
         if (payload.scanStats) { setScanStats(payload.scanStats as ScanStats); continue }
         if (payload.text) {
-          if (!rawRef.current) setProgress('')
+          if (!rawRef.current) setProgress('Model responding — building findings...')
           rawRef.current += payload.text
         }
       }
@@ -245,7 +245,6 @@ export default function AgentScanner() {
     setScanStatus(parsed.length > 0 ? 'issues_found' : 'clean')
     setScanDuration(Math.round((Date.now() - startTimeRef.current) / 1000))
     analytics.scanResult(parsed.length)
-    setProgress('')
   }
 
   const inputReady = mode === 'github' ? repoUrl.trim().length > 0 : !!files?.length
