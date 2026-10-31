@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 import AnalysisResult from './AnalysisResult'
-import VoiceInput from './VoiceInput'
 import MetaLoader from './MetaLoader'
 import { analytics } from '../utils/analytics'
 import './QueryAnalyzer.css'
