@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
+import VoiceInput from './VoiceInput'
 import { analytics } from '../utils/analytics'
 import './AnalysisResult.css'
 
@@ -19,6 +20,87 @@ const SEVERITY_LABEL: Record<Finding['severity'], string> = {
 }
 
 export default function AnalysisResult({ finding, visualUrl, visualLoading, modelUsed, lang = 'typescript' }: Props) {
+  const [question, setQuestion] = useState('')
+  const [askedQuestion, setAskedQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [askLoading, setAskLoading] = useState(false)
+  const [askError, setAskError] = useState('')
+  const [voiceRecording, setVoiceRecording] = useState(false)
+  const [usedVoice, setUsedVoice] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+  const [cooldownKey, setCooldownKey] = useState(0)
+  const rawRef = useRef('')
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  async function askFollowUp(q: string) {
+    const trimmed = q.trim()
+    if (!trimmed || askLoading) return
+    setAskLoading(true)
+    setAskedQuestion(trimmed)
+    setAnswer('')
+    setAskError('')
+    rawRef.current = ''
+
+    try {
+      const res = await fetch('/api/followup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ finding, question: trimmed }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Follow-up failed')
+      }
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        for (const line of decoder.decode(value).split('\n')) {
+          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
+          const payload = JSON.parse(line.slice(6))
+          if (payload.error) throw new Error(payload.error)
+          if (payload.text) { rawRef.current += payload.text; setAnswer(rawRef.current) }
+        }
+      }
+    } catch (err) {
+      setAskError(err instanceof Error ? err.message : 'Follow-up failed')
+    } finally {
+      setAskLoading(false)
+      let secs = 10
+      setCooldown(secs)
+      setCooldownKey(k => k + 1)
+      cooldownRef.current = setInterval(() => {
+        secs--
+        setCooldown(secs)
+        if (secs <= 0) { clearInterval(cooldownRef.current!); cooldownRef.current = null }
+      }, 1000)
+    }
+  }
+
+  function handleVoiceTranscript(text: string) {
+    const q = text.trim()
+    setQuestion(q)
+    setUsedVoice(true)
+    if (q) askFollowUp(q)
+  }
+
+  function parseAnswer(text: string) {
+    const parts: Array<{ type: 'prose' | 'code'; content: string; lang?: string }> = []
+    const regex = /```(\w*)?\n?([\s\S]*?)```/g
+    let last = 0, match
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > last) parts.push({ type: 'prose', content: text.slice(last, match.index).trim() })
+      parts.push({ type: 'code', lang: match[1] || undefined, content: match[2].trim() })
+      last = match.index + match[0].length
+    }
+    if (last < text.length) {
+      const rest = text.slice(last).trim()
+      if (rest) parts.push({ type: 'prose', content: rest })
+    }
+    return parts
+  }
+
   return (
     <div className="result">
       <div className="result-header">
@@ -49,6 +131,76 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
           </span>
         </div>
       )}
+
+      <div className="followup">
+        <div className="followup-header">
+          <span className="followup-label">Ask a follow-up</span>
+          <VoiceInput
+            onTranscript={handleVoiceTranscript}
+            disabled={askLoading || cooldown > 0}
+            hideHint={true}
+            onRecordingChange={setVoiceRecording}
+          />
+        </div>
+        <div className="followup-input-row">
+          <input
+            className="followup-input"
+            type="text"
+            placeholder='e.g. "How bad does this get at 10,000 users?"'
+            value={question}
+            onChange={e => setQuestion(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && askFollowUp(question)}
+            disabled={askLoading || voiceRecording || cooldown > 0}
+          />
+          <button
+            className="followup-ask-btn"
+            onClick={() => askFollowUp(question)}
+            disabled={askLoading || voiceRecording || cooldown > 0 || !question.trim()}
+          >
+            {askLoading ? 'Asking...' : 'Ask →'}
+          </button>
+        </div>
+        {cooldown > 0 && (
+          <div className="cooldown-wrap">
+            <div className="cooldown-meta">
+              <span className="cooldown-label">Cooling down</span>
+              <span className="cooldown-secs">{cooldown}s</span>
+            </div>
+            <div className="cooldown-bar">
+              <div key={cooldownKey} className="cooldown-fill" />
+            </div>
+          </div>
+        )}
+        {askError && <p className="followup-error">{askError}</p>}
+        {(askedQuestion || answer) && (
+          <div className="followup-answer">
+            {askedQuestion && <p className="followup-question">"{askedQuestion}"</p>}
+            {askLoading && !answer && <p className="followup-thinking">Thinking...</p>}
+            {answer && (
+              <div className="followup-answer-body">
+                {askLoading
+                  ? <p className="followup-answer-text">{answer}</p>
+                  : parseAnswer(answer).map((part, i) =>
+                      part.type === 'code'
+                        ? <div key={i} className="followup-code-block">
+                            {part.lang && <span className="followup-code-lang">{part.lang}</span>}
+                            <pre><code>{part.content}</code></pre>
+                          </div>
+                        : <p key={i} className="followup-answer-text">{part.content}</p>
+                    )
+                }
+              </div>
+            )}
+            {!askLoading && answer && (
+              <div className="followup-attribution">
+                {usedVoice && <span className="attribution-model">muse-voice-transcribe-1.0</span>}
+                {usedVoice && <span className="followup-attr-sep">→</span>}
+                <span className="attribution-model">muse-spark-1.3</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {visualLoading && !visualUrl && (
         <div className="visual">

@@ -19,6 +19,7 @@ export const RATE_LIMITS = {
   AGENT:       5,   // folder upload scan      — same cost as GitHub scan
   VISUALIZE:  20,   // execution plan image    — image generation per request
   TRANSCRIBE: 20,   // voice transcription     — lighter, short audio clips
+  FOLLOWUP:   30,   // follow-up questions     — short targeted model calls
 } as const
 
 

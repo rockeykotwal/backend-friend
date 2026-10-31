@@ -6,6 +6,7 @@ import { agentHandler } from './routes/agent.js'
 import { githubHandler } from './routes/github.js'
 import { transcribeHandler } from './routes/transcribe.js'
 import { visualizeHandler } from './routes/visualize.js'
+import { followupHandler } from './routes/followup.js'
 import { MAX_BODY_SIZE, AGENT_MAX_BODY_SIZE, TRANSCRIBE_MAX_BODY_SIZE, RATE_LIMITS, RATE_LIMIT_MESSAGE } from './config/limits.js'
 
 const app = express()
@@ -34,5 +35,6 @@ app.post('/api/agent',      jsonAgent, limiter(RATE_LIMITS.AGENT),      agentHan
 app.post('/api/github',     json,      limiter(RATE_LIMITS.GITHUB),     githubHandler)
 app.post('/api/transcribe', jsonAudio, limiter(RATE_LIMITS.TRANSCRIBE), transcribeHandler)
 app.post('/api/visualize',  json,      limiter(RATE_LIMITS.VISUALIZE),  visualizeHandler)
+app.post('/api/followup',   json,      limiter(RATE_LIMITS.FOLLOWUP),   followupHandler)
 
 export default app

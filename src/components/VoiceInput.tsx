@@ -5,6 +5,19 @@ import './VoiceInput.css'
 interface Props {
   onTranscript: (text: string) => void
   disabled?: boolean
+  hideHint?: boolean
+  onRecordingChange?: (recording: boolean) => void
+}
+
+function MicIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="8" y1="22" x2="16" y2="22" />
+    </svg>
+  )
 }
 
 // Encode raw PCM Float32 samples into a WAV ArrayBuffer (RIFF/PCM, 16-bit, mono)
@@ -43,7 +56,7 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(bin)
 }
 
-export default function VoiceInput({ onTranscript, disabled = false }: Props) {
+export default function VoiceInput({ onTranscript, disabled = false, hideHint = false, onRecordingChange }: Props) {
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -83,6 +96,7 @@ export default function VoiceInput({ onTranscript, disabled = false }: Props) {
     source.connect(processor)
     processor.connect(ctx.destination)
     setRecording(true)
+    onRecordingChange?.(true)
     analytics.voiceStart()
   }
 
@@ -118,6 +132,7 @@ export default function VoiceInput({ onTranscript, disabled = false }: Props) {
       setError('Transcription failed')
     } finally {
       setLoading(false)
+      onRecordingChange?.(false)
     }
   }
 
@@ -128,16 +143,33 @@ export default function VoiceInput({ onTranscript, disabled = false }: Props) {
 
   return (
     <span className={`voice-wrap${disabled ? ' voice-disabled' : ''}`}>
-      {!recording && !loading && !error && (
+      {!hideHint && !recording && !loading && !error && (
         <span className="voice-hint">Prefer not to type?</span>
       )}
       <button
-        className={`voice-btn ${recording ? 'recording' : ''}`}
+        className={`voice-btn${recording ? ' recording' : ''}${loading ? ' transcribing' : ''}`}
         onClick={toggle}
         disabled={loading || disabled}
         title="Describe your query by voice — Muse Voice Transcribe converts it to text"
       >
-        {loading ? 'Transcribing...' : recording ? '⏹ Stop' : '🎤 Describe by voice'}
+        {loading ? (
+          <>
+            <span className="voice-dots">
+              <span /><span /><span />
+            </span>
+            Transcribing
+          </>
+        ) : recording ? (
+          <>
+            <span className="voice-rec-dot" />
+            Recording...
+          </>
+        ) : (
+          <>
+            <MicIcon />
+            Describe by voice
+          </>
+        )}
       </button>
       {error && <span className="voice-error">{error}</span>}
     </span>

@@ -249,7 +249,6 @@ export default function QueryAnalyzer() {
         <div className="input-group">
           <div className="input-label-row">
             <label>Your Query</label>
-            <VoiceInput onTranscript={text => setQuery(prev => prev + text)} disabled={loading} />
           </div>
           <textarea
             className={`code-input${loading ? ' input-locked' : ''}`}
@@ -293,13 +292,16 @@ export default function QueryAnalyzer() {
         ))}
       </div>
 
-      <button
-        className="btn-analyze"
-        onClick={analyze}
-        disabled={loading || !query.trim() || !schema.trim()}
-      >
-        {loading ? 'Analyzing...' : 'Analyze Query'}
-      </button>
+      <div className="analyze-row">
+        <button
+          className="btn-analyze"
+          onClick={analyze}
+          disabled={loading || !query.trim() || !schema.trim()}
+        >
+          {loading ? 'Analyzing...' : 'Analyze Query'}
+        </button>
+        <span className="analyze-hint">🎤 Ask follow-up questions by voice after analysis</span>
+      </div>
 
       {loading && <MetaLoader />}
       {error && <div className="error">{error}</div>}
