@@ -245,15 +245,15 @@ All incoming JSON payloads are capped at 50kb before they reach the model. Overs
 
 To adjust any limit, edit the constants in `server/config/limits.ts` — no other file needs changing.
 
-A third layer using Cloudflare Turnstile (invisible bot challenge at the network edge) is planned post-launch.
+A third layer using Cloudflare Turnstile (invisible bot challenge at the network edge) is on the roadmap.
 
 ---
 
 ## Roadmap
 
+- **GitHub Action** — drop a single workflow file into any repo; the action scans only the changed files in a PR and posts findings as an inline comment, optionally failing the check at a severity threshold
 - **User's Meta Model API Key** – Users can provide their own Meta API key to track usage directly against their account. The API key is used only at runtime and is never stored on our servers, ensuring that all usage is billed and tracked by the user's Meta account.
 - **`npx backend-friend` CLI** — scan a local folder or single file from the terminal; pipe into pre-commit / pre-push hooks to block CRITICAL findings before they reach production
-- **GitHub Action** — drop a single workflow file into any repo; the action scans only the changed files in a PR and posts findings as an inline comment, optionally failing the check at a severity threshold
 - **Cloudflare Turnstile** — invisible bot challenge at the network edge, on top of the existing rate limiting layers
 - **Phase 2 databases** — Redis cache misuse, Elasticsearch unbounded queries, Firebase/Firestore, and vector databases (Pinecone, Weaviate, Qdrant, Chroma)
 
