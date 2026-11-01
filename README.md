@@ -9,7 +9,7 @@ AI-powered database query analyzer that finds N+1 problems, missing indexes, ove
 [![Built with Meta AI](https://img.shields.io/badge/Built%20with-Meta%20AI-0064e0)](https://dev.meta.ai)
 [![Meta Hackathon 2026](https://img.shields.io/badge/Meta%20Hackathon-2026-blueviolet)](https://dev.meta.ai)
 
-**[→ Try it live](https://backend-friend.rockeykotwal.in)** · Built for the [Meta Global AI Developer Hackathon 2026](https://dev.meta.ai) by [Rockey Kotwal](https://rockeykotwal.in)
+**[→ Try it live](https://backend-friend.rockeykotwal.in)** · **[→ Watch Demo](https://youtu.be/03KrFQC5bB8)** · Built for the [Meta Global AI Developer Hackathon 2026](https://dev.meta.ai) by [Rockey Kotwal](https://rockeykotwal.in)
 
 ---
 
