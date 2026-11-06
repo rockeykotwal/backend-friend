@@ -64,7 +64,7 @@ export default function ApiKeyInput({ apiKey, setApiKey, provider, setProvider }
 
       {hasKey
         ? <span className="api-key-status api-key-status--own">Your key · encrypted in browser</span>
-        : <span className="api-key-status">Shared key in use</span>
+        : <span className="api-key-status">Paste your key to get started</span>
       }
     </div>
   )

@@ -1,8 +1,6 @@
 import { decryptApiKey } from '../crypto/session.js'
 import { createProvider, isValidProvider, type ProviderId, type LLMProvider } from '../providers/index.js'
 
-const serverMetaProvider: LLMProvider = createProvider('meta', process.env.META_MODEL_API_KEY ?? '')
-
 export function resolveClient(body: Record<string, unknown>): LLMProvider {
   const { sessionToken, encryptedKey, provider: rawProvider } = body
 
@@ -15,5 +13,5 @@ export function resolveClient(body: Record<string, unknown>): LLMProvider {
     return createProvider(provider, apiKey)
   }
 
-  return serverMetaProvider
+  throw new Error('No API key provided. Please add your API key above to continue.')
 }
