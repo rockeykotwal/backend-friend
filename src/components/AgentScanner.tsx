@@ -3,6 +3,8 @@ import type { Finding } from './QueryAnalyzer'
 import AnalysisResult from './AnalysisResult'
 import { extractOrmBlocks, detectRawDbUsage, extractSchemaFiles, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
 import { analytics } from '../utils/analytics'
+import { useApiKey } from '../contexts/ApiKeyContext'
+import { getEncryptedSession } from '../utils/crypto'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -45,6 +47,7 @@ const LANG_TO_DISPLAY: Record<string, string> = {
 }
 
 export default function AgentScanner() {
+  const { apiKey, provider } = useApiKey()
   const [mode, setMode] = useState<'github' | 'upload'>('github')
   const [repoUrl, setRepoUrl] = useState('https://github.com/gothinkster/node-express-realworld-example-app')
   const [files, setFiles] = useState<FileList | null>(null)
@@ -145,10 +148,15 @@ export default function AgentScanner() {
     analytics.scanGithub()
 
     try {
+      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
       const res = await fetch('/api/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: repoUrl.trim(), model: modelTier })
+        body: JSON.stringify({
+          url: repoUrl.trim(),
+          model: modelTier,
+          ...(keySession && { ...keySession, provider }),
+        })
       })
       await readAgentStream(res)
       if (rawRef.current) finalise()
@@ -213,13 +221,15 @@ export default function AgentScanner() {
 
     try {
       const schemaFiles = extractSchemaFiles(rawContents)
+      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           files: extracted.map(f => ({ path: f.path, content: f.content })),
           schemaFiles,
-          model: modelTier
+          model: modelTier,
+          ...(keySession && { ...keySession, provider }),
         })
       })
       await readAgentStream(res)

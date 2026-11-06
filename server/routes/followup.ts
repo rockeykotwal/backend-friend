@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client.js'
-import type { Finding } from '../../src/components/QueryAnalyzer.js'
+import type { Finding } from '../../src/types/finding.js'
+import { resolveClient } from '../utils/resolveClient.js'
 
 const FOLLOWUP_SYSTEM_PROMPT = `You are Backend Friend's follow-up assistant. A developer has received a database performance finding and has a question about it.
 
@@ -18,7 +18,14 @@ export async function followupHandler(req: Request, res: Response) {
     return res.status(400).json({ error: 'finding and question are required' })
   }
 
-  const userMessage = `Finding (${finding.severity}): ${finding.problem}
+  let provider
+  try {
+    provider = resolveClient(req.body as Record<string, unknown>)
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired API key session — please re-enter your key and try again.' })
+  }
+
+  const userContent = `Finding (${finding.severity}): ${finding.problem}
 
 ${finding.explanation}
 
@@ -33,18 +40,10 @@ Developer's question: ${question.trim()}`
   const emit = (payload: object) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
 
   try {
-    const stream = await metaClient.chat.completions.create({
-      model: MODELS.balanced,
-      messages: [
-        { role: 'system', content: FOLLOWUP_SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      stream: true,
-    })
+    const stream = await provider.streamChat({ system: FOLLOWUP_SYSTEM_PROMPT, userContent, tier: 'balanced' })
 
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content ?? ''
-      if (text) emit({ text })
+    for await (const text of stream) {
+      emit({ text })
     }
 
     res.write('data: [DONE]\n\n')

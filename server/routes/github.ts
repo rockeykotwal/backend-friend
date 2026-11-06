@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS, MODEL_TIERS } from '../_client.js'
 import { AGENT_SYSTEM_PROMPT } from '../_prompt.js'
 import { detectRawDbUsage, extractSchemaFiles } from '../../src/utils/extractOrmBlocks.js'
+import { resolveClient } from '../utils/resolveClient.js'
 
 const BACKEND_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|java|kt|rb|php|cs|rs)$/
 const SKIP_PATHS = /node_modules|\/vendor\/|\/target\/|\.git\/|__pycache__|\/dist\/|\/build\/|\.next\/|\.nuxt\/|\/coverage\//
@@ -73,6 +73,12 @@ export async function githubHandler(req: Request, res: Response) {
   const { url, model: modelTier } = req.body as { url: string; model?: string }
   if (!url) return res.status(400).json({ error: 'url is required' })
 
+  let resolved
+  try {
+    resolved = resolveClient(req.body as Record<string, unknown>)
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired API key session — please re-enter your key and try again.' })
+  }
   const parsed = parseGithubUrl(url)
   if (!parsed) return res.status(400).json({ error: 'Invalid GitHub URL. Expected: https://github.com/owner/repo' })
 
@@ -182,23 +188,16 @@ export async function githubHandler(req: Request, res: Response) {
     const schemaPart = schemaFiles.length
       ? schemaFiles.map(f => `// SCHEMA: ${f.path}\n${f.content}`).join('\n\n---\n\n') + '\n\n===\n\n'
       : ''
-    const fileBundle = schemaPart + extracted.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
-    const model = MODEL_TIERS[modelTier ?? ''] ?? MODELS.balanced
+    const userContent = schemaPart + extracted.map(f => `// FILE: ${f.path}\n${f.content}`).join('\n\n---\n\n')
+    const tier = modelTier ?? 'balanced'
+    const selectedModel = resolved.resolveModel(tier)
 
-    emit({ model })
+    emit({ model: selectedModel })
 
-    const stream = await metaClient.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: AGENT_SYSTEM_PROMPT },
-        { role: 'user', content: fileBundle }
-      ],
-      stream: true
-    })
+    const stream = await resolved.streamChat({ system: AGENT_SYSTEM_PROMPT, userContent, tier })
 
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content ?? ''
-      if (text) emit({ text })
+    for await (const text of stream) {
+      emit({ text })
     }
 
     res.write('data: [DONE]\n\n')

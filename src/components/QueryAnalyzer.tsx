@@ -2,18 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import AnalysisResult from './AnalysisResult'
 import MetaLoader from './MetaLoader'
 import { analytics } from '../utils/analytics'
+import { useApiKey } from '../contexts/ApiKeyContext'
+import { getEncryptedSession } from '../utils/crypto'
 import './QueryAnalyzer.css'
 import './MetaLoader.css'
 
-export interface Finding {
-  severity: 'critical' | 'high' | 'medium' | 'low'
-  problem: string
-  explanation: string
-  sql_generated: string
-  fixed_query: string
-  migration: string | null
-  impact_estimate: string
-}
+import type { Finding } from '../types/finding'
+export type { Finding }
 
 interface Example {
   label: string
@@ -126,6 +121,7 @@ function cleanJson(raw: string): string {
 }
 
 export default function QueryAnalyzer() {
+  const { apiKey, provider } = useApiKey()
   const [query, setQuery] = useState(EXAMPLES[0].query)
   const [schema, setSchema] = useState(EXAMPLES[0].schema)
   const [activeExample, setActiveExample] = useState<number | null>(0)
@@ -158,10 +154,16 @@ export default function QueryAnalyzer() {
     rawRef.current = ''
 
     try {
+      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
+
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, schema })
+        body: JSON.stringify({
+          query,
+          schema,
+          ...(keySession && { ...keySession, provider }),
+        })
       })
 
       if (!res.ok) {
