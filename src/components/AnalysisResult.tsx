@@ -2,6 +2,8 @@ import { useState, useRef } from 'react'
 import type { Finding } from './QueryAnalyzer'
 import VoiceInput from './VoiceInput'
 import { analytics } from '../utils/analytics'
+import { useApiKey } from '../contexts/ApiKeyContext'
+import { getEncryptedSession } from '../utils/crypto'
 import './AnalysisResult.css'
 
 interface Props {
@@ -20,6 +22,7 @@ const SEVERITY_LABEL: Record<Finding['severity'], string> = {
 }
 
 export default function AnalysisResult({ finding, visualUrl, visualLoading, modelUsed, lang = 'typescript' }: Props) {
+  const { apiKey, provider } = useApiKey()
   const [question, setQuestion] = useState('')
   const [askedQuestion, setAskedQuestion] = useState('')
   const [answer, setAnswer] = useState('')
@@ -42,10 +45,15 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
     rawRef.current = ''
 
     try {
+      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
       const res = await fetch('/api/followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ finding, question: trimmed }),
+        body: JSON.stringify({
+          finding,
+          question: trimmed,
+          ...(keySession && { ...keySession, provider }),
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

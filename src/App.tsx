@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import QueryAnalyzer from './components/QueryAnalyzer'
 import AgentScanner from './components/AgentScanner'
+import ApiKeyInput from './components/ApiKeyInput'
+import { ApiKeyContext, type ProviderId } from './contexts/ApiKeyContext'
 import { analytics } from './utils/analytics'
 import './App.css'
 
@@ -10,6 +12,8 @@ type Theme = 'dark' | 'light'
 export default function App() {
   const [tab, setTab] = useState<Tab>('analyze')
   const [theme, setTheme] = useState<Theme>('dark')
+  const [apiKey, setApiKey] = useState('')
+  const [provider, setProvider] = useState<ProviderId>('meta')
 
   function toggleTheme() {
     const next: Theme = theme === 'dark' ? 'light' : 'dark'
@@ -19,48 +23,59 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="header-inner">
-          <div className="header-top">
-            <div className="logo">
-              <span className="logo-icon">⚡</span>
-              <span className="logo-text">Backend Friend</span>
+    <ApiKeyContext.Provider value={{ apiKey, provider }}>
+      <div className="app">
+        <header className="header">
+          <div className="header-inner">
+            <div className="header-top">
+              <div className="logo">
+                <span className="logo-icon">⚡</span>
+                <span className="logo-text">Backend Friend</span>
+              </div>
+              <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+                {theme === 'dark' ? '☀' : '☾'}
+              </button>
             </div>
-            <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
-              {theme === 'dark' ? '☀' : '☾'}
-            </button>
+            <p className="tagline">Catch what's killing your database before it kills your app</p>
           </div>
-          <p className="tagline">Catch what's killing your database before it kills your app</p>
+        </header>
+
+        <nav className="tabs">
+          <button
+            className={`tab ${tab === 'analyze' ? 'active' : ''}`}
+            onClick={() => setTab('analyze')}
+          >
+            Analyze Query
+          </button>
+          <button
+            className={`tab ${tab === 'agent' ? 'active' : ''}`}
+            onClick={() => setTab('agent')}
+          >
+            Scan Codebase
+            <span className="tab-badge">Agentic</span>
+          </button>
+        </nav>
+
+        <div className="api-key-wrap">
+          <ApiKeyInput
+            apiKey={apiKey}
+            setApiKey={setApiKey}
+            provider={provider}
+            setProvider={setProvider}
+          />
         </div>
-      </header>
 
-      <nav className="tabs">
-        <button
-          className={`tab ${tab === 'analyze' ? 'active' : ''}`}
-          onClick={() => setTab('analyze')}
-        >
-          Analyze Query
-        </button>
-        <button
-          className={`tab ${tab === 'agent' ? 'active' : ''}`}
-          onClick={() => setTab('agent')}
-        >
-          Scan Codebase
-          <span className="tab-badge">Agentic</span>
-        </button>
-      </nav>
+        <main className="main">
+          <div style={{ display: tab === 'analyze' ? 'block' : 'none' }}><QueryAnalyzer /></div>
+          <div style={{ display: tab === 'agent' ? 'block' : 'none' }}><AgentScanner /></div>
+        </main>
 
-      <main className="main">
-        <div style={{ display: tab === 'analyze' ? 'block' : 'none' }}><QueryAnalyzer /></div>
-        <div style={{ display: tab === 'agent' ? 'block' : 'none' }}><AgentScanner /></div>
-      </main>
-
-      <footer className="footer">
-        <span>Built with Meta AI · Muse Spark · Muse Wonder · Muse Image · Muse Voice</span>
-        <a href="https://rockeykotwal.in" target="_blank" rel="noreferrer">by Rockey Kotwal</a>
-        <a href="https://github.com/rockeykotwal/backend-friend" target="_blank" rel="noreferrer">GitHub</a>
-      </footer>
-    </div>
+        <footer className="footer">
+          <span>Built with Meta AI · Muse Spark · Muse Wonder · Muse Image · Muse Voice</span>
+          <a href="https://rockeykotwal.in" target="_blank" rel="noreferrer">by Rockey Kotwal</a>
+          <a href="https://github.com/rockeykotwal/backend-friend" target="_blank" rel="noreferrer">GitHub</a>
+        </footer>
+      </div>
+    </ApiKeyContext.Provider>
   )
 }

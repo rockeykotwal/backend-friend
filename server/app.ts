@@ -7,6 +7,7 @@ import { githubHandler } from './routes/github.js'
 import { transcribeHandler } from './routes/transcribe.js'
 import { visualizeHandler } from './routes/visualize.js'
 import { followupHandler } from './routes/followup.js'
+import { sessionKeyHandler } from './routes/sessionKey.js'
 import { MAX_BODY_SIZE, AGENT_MAX_BODY_SIZE, TRANSCRIBE_MAX_BODY_SIZE, RATE_LIMITS, RATE_LIMIT_MESSAGE } from './config/limits.js'
 
 const app = express()
@@ -30,6 +31,7 @@ function limiter(max: number) {
   })
 }
 
+app.get('/api/session-key', sessionKeyHandler)
 app.post('/api/analyze',    json,      limiter(RATE_LIMITS.ANALYZE),    analyzeHandler)
 app.post('/api/agent',      jsonAgent, limiter(RATE_LIMITS.AGENT),      agentHandler)
 app.post('/api/github',     json,      limiter(RATE_LIMITS.GITHUB),     githubHandler)
