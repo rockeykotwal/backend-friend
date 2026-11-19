@@ -4,7 +4,7 @@ import AnalysisResult from './AnalysisResult'
 import { extractOrmBlocks, detectRawDbUsage, extractSchemaFiles, LANGUAGE_GROUPS } from '../utils/extractOrmBlocks'
 import { analytics } from '../utils/analytics'
 import { useApiKey } from '../contexts/ApiKeyContext'
-import { getEncryptedSession } from '../utils/crypto'
+import { encryptApiKey } from '../utils/crypto'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -148,7 +148,7 @@ export default function AgentScanner() {
     analytics.scanGithub()
 
     try {
-      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
+      const keySession = apiKey.trim() ? await encryptApiKey(apiKey.trim()) : null
       const res = await fetch('/api/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -221,7 +221,7 @@ export default function AgentScanner() {
 
     try {
       const schemaFiles = extractSchemaFiles(rawContents)
-      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
+      const keySession = apiKey.trim() ? await encryptApiKey(apiKey.trim()) : null
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

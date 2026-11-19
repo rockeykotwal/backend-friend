@@ -3,7 +3,7 @@ import AnalysisResult from './AnalysisResult'
 import MetaLoader from './MetaLoader'
 import { analytics } from '../utils/analytics'
 import { useApiKey } from '../contexts/ApiKeyContext'
-import { getEncryptedSession } from '../utils/crypto'
+import { encryptApiKey } from '../utils/crypto'
 import './QueryAnalyzer.css'
 import './MetaLoader.css'
 
@@ -154,7 +154,7 @@ export default function QueryAnalyzer() {
     rawRef.current = ''
 
     try {
-      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
+      const keySession = apiKey.trim() ? await encryptApiKey(apiKey.trim()) : null
 
       const res = await fetch('/api/analyze', {
         method: 'POST',

@@ -3,7 +3,7 @@ import type { Finding } from './QueryAnalyzer'
 import VoiceInput from './VoiceInput'
 import { analytics } from '../utils/analytics'
 import { useApiKey } from '../contexts/ApiKeyContext'
-import { getEncryptedSession } from '../utils/crypto'
+import { encryptApiKey } from '../utils/crypto'
 import './AnalysisResult.css'
 
 interface Props {
@@ -45,7 +45,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
     rawRef.current = ''
 
     try {
-      const keySession = apiKey.trim() ? await getEncryptedSession(apiKey.trim()) : null
+      const keySession = apiKey.trim() ? await encryptApiKey(apiKey.trim()) : null
       const res = await fetch('/api/followup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
