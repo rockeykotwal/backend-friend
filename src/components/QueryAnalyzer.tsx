@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import AnalysisResult from './AnalysisResult'
 import MetaLoader from './MetaLoader'
 import { analytics } from '../utils/analytics'
-import { useApiKey } from '../contexts/ApiKeyContext'
+import GenerateVisualButton from './GenerateVisualButton'
+import { useApiKey, isMetaProvider } from '../contexts/ApiKeyContext'
 import { encryptApiKey } from '../utils/crypto'
+import { requestExecutionPlan } from '../utils/visual'
 import './QueryAnalyzer.css'
 import './MetaLoader.css'
 
@@ -130,6 +132,7 @@ export default function QueryAnalyzer() {
   const [error, setError] = useState('')
   const [visualUrl, setVisualUrl] = useState('')
   const [visualLoading, setVisualLoading] = useState(false)
+  const [visualError, setVisualError] = useState('')
   const [modelUsed, setModelUsed] = useState('')
   const rawRef = useRef('')
   const resultRef = useRef<HTMLDivElement>(null)
@@ -149,6 +152,7 @@ export default function QueryAnalyzer() {
     setError('')
     setVisualUrl('')
     setVisualLoading(false)
+    setVisualError('')
     setModelUsed('')
     analytics.analyzeQuery(!!schema.trim())
     rawRef.current = ''
@@ -196,10 +200,6 @@ export default function QueryAnalyzer() {
       }
       setResult(finding)
       analytics.analyzeResult(finding.severity)
-      if (finding.fixed_query !== 'N/A') {
-        setVisualLoading(true)
-        generateVisual(finding)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
     } finally {
@@ -208,20 +208,12 @@ export default function QueryAnalyzer() {
   }
 
   async function generateVisual(finding: Finding) {
+    setVisualLoading(true)
+    setVisualError('')
     try {
-      const res = await fetch('/api/visualize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          problem: finding.problem,
-          fix: finding.fixed_query,
-          impact: finding.impact_estimate
-        })
-      })
-      const { url } = await res.json()
-      if (url) setVisualUrl(url)
-    } catch {
-      // visual is optional — fail silently
+      setVisualUrl(await requestExecutionPlan(finding, apiKey, provider))
+    } catch (err) {
+      setVisualError(err instanceof Error ? err.message : 'Could not generate the diagram')
     } finally {
       setVisualLoading(false)
     }
@@ -301,13 +293,18 @@ export default function QueryAnalyzer() {
         >
           {loading ? 'Analyzing...' : 'Analyze Query'}
         </button>
-        <span className="analyze-hint">🎤 Ask follow-up questions by voice after analysis</span>
+        {isMetaProvider(provider) && (
+          <span className="analyze-hint">🎤 Ask follow-up questions by voice after analysis</span>
+        )}
       </div>
 
       {loading && <MetaLoader />}
       {error && <div className="error">{error}</div>}
       <div ref={resultRef}>
         {result && <AnalysisResult finding={result} visualUrl={visualUrl} visualLoading={visualLoading} modelUsed={modelUsed} />}
+        {result && result.fixed_query !== 'N/A' && !visualUrl && !visualLoading && (
+          <GenerateVisualButton onClick={() => generateVisual(result)} error={visualError} />
+        )}
       </div>
     </div>
   )

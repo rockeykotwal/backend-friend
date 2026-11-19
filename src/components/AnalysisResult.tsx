@@ -30,6 +30,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
   const [askError, setAskError] = useState('')
   const [voiceRecording, setVoiceRecording] = useState(false)
   const [usedVoice, setUsedVoice] = useState(false)
+  const [answerModel, setAnswerModel] = useState('')
   const [cooldown, setCooldown] = useState(0)
   const [cooldownKey, setCooldownKey] = useState(0)
   const rawRef = useRef('')
@@ -59,6 +60,7 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Follow-up failed')
       }
+      setAnswerModel(res.headers.get('x-model-used') ?? '')
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       while (true) {
@@ -202,8 +204,8 @@ export default function AnalysisResult({ finding, visualUrl, visualLoading, mode
             {!askLoading && answer && (
               <div className="followup-attribution">
                 {usedVoice && <span className="attribution-model">muse-voice-transcribe-1.0</span>}
-                {usedVoice && <span className="followup-attr-sep">→</span>}
-                <span className="attribution-model">muse-spark-1.3</span>
+                {usedVoice && answerModel && <span className="followup-attr-sep">→</span>}
+                {answerModel && <span className="attribution-model">{answerModel}</span>}
               </div>
             )}
           </div>

@@ -36,6 +36,7 @@ Developer's question: ${question.trim()}`
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Model-Used', provider.resolveModel('balanced'))
 
   const emit = (payload: object) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
 

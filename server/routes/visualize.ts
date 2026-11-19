@@ -1,9 +1,20 @@
 import type { Request, Response } from 'express'
-import { metaClient, MODELS } from '../_client.js'
+import OpenAI from 'openai'
+import { META_BASE_URL, META_IMAGE_MODEL } from '../providers/index.js'
+import { resolveMetaKey, keyErrorResponse } from '../utils/resolveClient.js'
 
 export async function visualizeHandler(req: Request, res: Response) {
   const { problem, fix, impact } = req.body as { problem: string; fix: string; impact: string }
   if (!problem || !fix) return res.status(400).json({ error: 'problem and fix are required' })
+
+  let metaClient: OpenAI
+  try {
+    const apiKey = resolveMetaKey(req.body as Record<string, unknown>, 'The execution plan diagram')
+    metaClient = new OpenAI({ apiKey, baseURL: META_BASE_URL })
+  } catch (err) {
+    const { status, error } = keyErrorResponse(err)
+    return res.status(status).json({ error })
+  }
 
   const prompt = `A minimal two-column engineering diagram on a near-black background (#0d1117). No large title — start directly with the two columns.
 
@@ -36,7 +47,7 @@ Hard rules — must follow exactly:
 
   try {
     const response = await metaClient.images.generate({
-      model: MODELS.image,
+      model: META_IMAGE_MODEL,
       prompt,
       n: 1,
       size: '1024x1024'

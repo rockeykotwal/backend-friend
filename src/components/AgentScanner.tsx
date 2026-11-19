@@ -5,6 +5,8 @@ import { extractOrmBlocks, detectRawDbUsage, extractSchemaFiles, LANGUAGE_GROUPS
 import { analytics } from '../utils/analytics'
 import { useApiKey } from '../contexts/ApiKeyContext'
 import { encryptApiKey } from '../utils/crypto'
+import { requestExecutionPlan } from '../utils/visual'
+import GenerateVisualButton from './GenerateVisualButton'
 import './AgentScanner.css'
 
 interface AgentFinding extends Finding {
@@ -59,7 +61,7 @@ export default function AgentScanner() {
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<number | null>(null)
   const [scanModel, setScanModel] = useState('')
-  const [visuals, setVisuals] = useState<Record<number, { loading: boolean; url: string }>>({})
+  const [visuals, setVisuals] = useState<Record<number, { loading: boolean; url: string; error?: string }>>({})
   const [modelTier, setModelTier] = useState<'balanced' | 'deep' | 'economy'>('balanced')
   const [economyConsent, setEconomyConsent] = useState(false)
   const [scanDuration, setScanDuration] = useState<number | null>(null)
@@ -91,15 +93,11 @@ export default function AgentScanner() {
   async function generateVisual(finding: AgentFinding, index: number) {
     setVisuals(v => ({ ...v, [index]: { loading: true, url: '' } }))
     try {
-      const res = await fetch('/api/visualize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ problem: finding.problem, fix: finding.fixed_query, impact: finding.impact_estimate })
-      })
-      const { url } = await res.json()
-      setVisuals(v => ({ ...v, [index]: { loading: false, url: url ?? '' } }))
-    } catch {
-      setVisuals(v => ({ ...v, [index]: { loading: false, url: '' } }))
+      const url = await requestExecutionPlan(finding, apiKey, provider)
+      setVisuals(v => ({ ...v, [index]: { loading: false, url } }))
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Could not generate the diagram'
+      setVisuals(v => ({ ...v, [index]: { loading: false, url: '', error } }))
     }
   }
 
@@ -531,9 +529,7 @@ export default function AgentScanner() {
                     lang={langFromPath(f.file)}
                   />
                   {f.fixed_query !== 'N/A' && !visuals[i]?.url && !visuals[i]?.loading && (
-                    <button className="btn-generate-visual" onClick={() => generateVisual(f, i)}>
-                      Generate Execution Plan
-                    </button>
+                    <GenerateVisualButton onClick={() => generateVisual(f, i)} error={visuals[i]?.error} />
                   )}
                 </div>
               </div>

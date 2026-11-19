@@ -14,6 +14,13 @@ export interface LLMProvider {
   resolveModel(tier: string): string
 }
 
+// ─── Meta-only models (image + voice) ─────────────────────────────────────────
+// Only Meta has these, so the diagram and voice features need a Meta key.
+
+export const META_BASE_URL = 'https://api.meta.ai/v1'
+export const META_IMAGE_MODEL = 'muse-image-1.0'
+export const META_VOICE_MODEL = 'muse-voice-transcribe-1.0'
+
 // ─── OpenAI-compatible providers (Meta, OpenAI, DeepSeek) ────────────────────
 
 interface OAIConfig {
@@ -25,7 +32,7 @@ interface OAIConfig {
 
 const OAI_CONFIGS: Record<Exclude<ProviderId, 'anthropic'>, OAIConfig> = {
   meta: {
-    baseURL: 'https://api.meta.ai/v1',
+    baseURL: META_BASE_URL,
     defaultModel: 'muse-spark-1.3',
     deepModel: 'muse-wonder-1.0',
     economyModel: 'muse-spark-1.3-contributor',
