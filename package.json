@@ -14,9 +14,11 @@
     "test:watch": "vitest",
     "test:contract": "vitest run --config vitest.contract.config.ts",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "byok:keygen": "node scripts/generate-byok-key.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
     "@types/express-rate-limit": "^5.1.3",
     "cors": "^2.8.5",
     "dotenv": "^18.0.9",

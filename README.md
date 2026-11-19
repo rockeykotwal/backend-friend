@@ -23,6 +23,7 @@ AI-powered database query analyzer that finds N+1 problems, missing indexes, ove
 - [How It Works](#how-it-works)
 - [What It Does](#what-it-does)
 - [Language & ORM Support](#language--orm-support)
+- [Bring Your Own API Key](#bring-your-own-api-key)
 - [Meta Models Used](#meta-models-used)
 - [Architecture](#architecture)
 - [Self-hosting](#self-hosting)
@@ -66,8 +67,8 @@ Smart ORM block extraction
 (only query code sent — not your whole repo)
         │
         ▼
-Meta Muse model analysis
-(schema-aware, language-aware)
+AI model analysis — with your own key
+(Meta Muse, OpenAI, DeepSeek or Claude · schema-aware, language-aware)
         │
         ▼
 Ranked findings — Critical first
@@ -75,7 +76,7 @@ severity · file · line · fixed code · migration script
 ```
 
 1. **Extract** — scans every backend file, pulls only ORM query blocks (±25 lines of context). A 100K-line repo becomes ~200 relevant lines.
-2. **Analyse** — sends the extracted blocks + your schema to Meta Muse. The model understands your ORM, the SQL it generates, and what will break at scale.
+2. **Analyse** — sends the extracted blocks + your schema to the model you chose, using your own API key. The model understands your ORM, the SQL it generates, and what will break at scale.
 3. **Fix** — returns ranked findings with the problematic code, the SQL being generated, the fixed ORM code in your language, and a migration script when indexes are needed.
 
 ---
@@ -85,6 +86,8 @@ severity · file · line · fixed code · migration script
 - **Analyze a single query** — paste your ORM query + schema, get a severity badge, explanation, the SQL being generated, fixed ORM code, and a migration script if needed
 - **Scan a GitHub repo (agentic)** — paste a GitHub URL, the agent fetches the repo, finds every ORM query across all files, analyses them all, and returns a ranked list of issues — critical first
 - **Scan a local folder** — upload your project folder for the same agentic scan without pushing to GitHub
+- **Ask follow-up questions** — ask about any finding ("why is this slow?", "how do I test the fix?") and get a streamed answer in context
+- **Bring your own API key** — use your Meta, OpenAI, DeepSeek or Claude key; it's encrypted in your browser and never stored ([details](#bring-your-own-api-key))
 - **Voice input** — describe your query problem out loud via Muse Voice Transcribe, transcript appends directly to the query box
 - **Execution plan visual** — Muse Image generates a before/after diagram of your query execution plan
 
@@ -115,19 +118,45 @@ Full-depth support across all 8 languages — smart block extraction (only ORM c
 
 ---
 
+## Bring Your Own API Key
+
+Query analysis, codebase scans and follow-up questions run on **your own API key**, so usage is billed and tracked on your account. Pick a provider in the API key bar at the top of the app and paste your key.
+
+| Provider | Balanced *(default)* | Deep Analysis | Economy |
+|---|---|---|---|
+| **Meta Model API** | `muse-spark-1.3` | `muse-wonder-1.0` | `muse-spark-1.3-contributor` |
+| **OpenAI** | `gpt-4o-mini` | `gpt-4o` | same as Balanced |
+| **DeepSeek** | `deepseek-chat` | `deepseek-reasoner` | same as Balanced |
+| **Claude (Anthropic)** | `claude-sonnet-4-6` | `claude-opus-4-7` | same as Balanced |
+
+Models are set in `server/providers/index.ts`.
+
+### How your key is protected
+
+- **Encrypted in your browser.** Before anything leaves the page, the key is encrypted with the server's RSA-4096 public key (RSA-OAEP / SHA-256, via the Web Crypto API). Only ciphertext is sent.
+- **Used once, never stored.** The server decrypts the key in memory for that single request and passes it to your chosen provider. It is never written to disk, a database or logs.
+- **Not kept in the browser either.** The key lives only in page memory — no `localStorage`, no cookies. It's gone when you refresh or close the tab.
+- **Replay-protected.** The current server time is sealed inside the ciphertext, and the server rejects anything older than 5 minutes, so a captured request can't be reused later.
+
+The encryption key pair is a single server key loaded from `BYOK_PRIVATE_KEY`, so it works the same across every serverless instance. See [Self-hosting](#self-hosting) for setup.
+
+> **Note:** Voice input and the before/after execution plan diagram currently still use the server's own Meta key (`META_MODEL_API_KEY`) — they are not yet covered by bring-your-own-key.
+
+---
+
 ## Meta Models Used
 
-Backend Friend uses four Meta models, each chosen for a specific job. Full specs at [dev.meta.ai/docs/models](https://dev.meta.ai/docs/models).
+Backend Friend was built around Meta's models — with a Meta key, each model is chosen for a specific job. Full specs at [dev.meta.ai/docs/models](https://dev.meta.ai/docs/models).
 
 | Mode | Model | Role | Privacy |
 |---|---|---|---|
 | **Balanced** *(default)* | [`muse-spark-1.3`](https://dev.meta.ai/docs/models) | Core analysis + agentic scan — fast, accurate, handles most codebases | Code never used for training |
 | **Deep Analysis** | [`muse-wonder-1.0`](https://dev.meta.ai/docs/models) | Large repos, subtle multi-file bugs, complex architecture — Meta's reasoning model | Code never used for training |
 | **Economy** *(opt-in)* | [`muse-spark-1.3-contributor`](https://dev.meta.ai/docs/models) | Same quality as Balanced — open-weight variant, fraction of the cost | ⚠ Meta may use submitted code to train future models. Explicit consent required. |
-| — | [`muse-image-1.0`](https://dev.meta.ai/docs/models) | Before/after query execution plan diagram | — |
-| — | [`muse-voice-transcribe-1.0`](https://dev.meta.ai/docs/models) | Voice-to-query input | — |
+| — | [`muse-image-1.0`](https://dev.meta.ai/docs/models) | Before/after query execution plan diagram *(server key)* | — |
+| — | [`muse-voice-transcribe-1.0`](https://dev.meta.ai/docs/models) | Voice-to-query input *(server key)* | — |
 
-Economy mode is gated behind an explicit consent checkbox in the UI — it is never the default and never a silent fallback. All three text models share a 1M token context window.
+Economy mode is gated behind an explicit consent checkbox in the UI — it is never the default and never a silent fallback. Economy is Meta-only; with other providers it uses the Balanced model. All three Meta text models share a 1M token context window.
 
 ---
 
@@ -140,14 +169,23 @@ backend-friend/
 ├── server/                 # ← The entire application lives here
 │   ├── app.ts              #   Express app — no Vercel, no platform code, runs anywhere
 │   ├── index.ts            #   Standalone entry: node server/index.ts (or npm start)
-│   ├── _client.ts          #   Meta Model API client
-│   ├── _prompt.ts          #   System prompts for Muse Spark / Muse Wonder
+│   ├── _client.ts          #   Meta client with the server key (voice + image only)
+│   ├── _prompt.ts          #   System prompts for analysis and scans
+│   ├── providers/index.ts  #   Meta / OpenAI / DeepSeek / Claude adapters + model per tier
+│   ├── crypto/session.ts   #   BYOK: public key + decryption, 5-minute replay window
+│   ├── utils/resolveClient.ts # Decrypts the user's key → provider for the request
+│   ├── config/limits.ts    #   Body size caps + per-IP rate limits
 │   └── routes/
+│       ├── sessionKey.ts   #   GET  /api/public-key — public key + server time for BYOK
 │       ├── analyze.ts      #   POST /api/analyze    — single query analysis (streaming SSE)
 │       ├── agent.ts        #   POST /api/agent      — agentic folder scan (streaming SSE)
 │       ├── github.ts       #   POST /api/github     — agentic GitHub URL scan (streaming SSE)
+│       ├── followup.ts     #   POST /api/followup   — follow-up questions on a finding (SSE)
 │       ├── transcribe.ts   #   POST /api/transcribe — voice input via Muse Voice
 │       └── visualize.ts    #   POST /api/visualize  — execution plan image via Muse Image
+│
+├── scripts/
+│   └── generate-byok-key.mjs  # npm run byok:keygen — prints a BYOK_PRIVATE_KEY
 │
 ├── api/
 │   └── index.ts            #   ⚠️  Vercel-only. 5 lines. Just imports server/app.ts.
@@ -157,8 +195,12 @@ backend-friend/
 ├── src/                    #   React/Vite frontend
 │   ├── utils/
 │   │   ├── extractOrmBlocks.ts   # Smart ORM block extraction — all 8 languages
+│   │   ├── crypto.ts             # Encrypts the user's API key in the browser
 │   │   └── analytics.ts          # GA4 event tracking
+│   ├── contexts/
+│   │   └── ApiKeyContext.tsx     # Holds the key + provider in page memory only
 │   └── components/
+│       ├── ApiKeyInput.tsx       # Provider picker + API key field
 │       ├── QueryAnalyzer.tsx     # Single query analysis tab
 │       ├── AgentScanner.tsx      # Codebase scan tab (GitHub URL + folder upload)
 │       ├── AnalysisResult.tsx    # Result card with severity, code sections, visual
@@ -176,13 +218,27 @@ All API routes stream responses via Server-Sent Events. The analysis model is us
 
 ## Self-hosting
 
-Backend Friend is a standard Express + React app. You need one environment variable:
+Backend Friend is a standard Express + React app. Environment variables:
 
-```
-META_MODEL_API_KEY=your_key_here
+| Variable | Required | Purpose |
+|---|---|---|
+| `BYOK_PRIVATE_KEY` | **Yes, in production** | Server key pair for encrypting users' API keys. Generate with `npm run byok:keygen`. Locally, a temporary key is used if unset. |
+| `META_MODEL_API_KEY` | For voice + diagrams | Server's Meta key, used only by voice input and the execution plan image. Get one at [dev.meta.ai](https://dev.meta.ai). |
+| `GITHUB_TOKEN` | Optional | Raises the GitHub API limit from 60 to 5000 requests/hour for repo scans. No scopes needed. |
+| `VITE_GA_ID` | Optional | Google Analytics 4 measurement ID. |
+
+Users supply their own model API key in the app — the server does not need an OpenAI, DeepSeek or Anthropic key.
+
+### Generating `BYOK_PRIVATE_KEY`
+
+```bash
+npm run byok:keygen
+# → BYOK_PRIVATE_KEY=LS0tLS1CRUdJTi...   (one long line)
 ```
 
-Get a free API key at [dev.meta.ai](https://dev.meta.ai).
+Copy the whole line into `.env` locally and into your host's environment variables in production. Treat it like a password — don't commit it. To rotate it, generate a new one, replace the variable and redeploy; open browser tabs pick up the new public key within 10 minutes.
+
+**Set it in every production deployment.** Without it each server instance would make its own temporary key, and requests that land on a different instance would fail. On Vercel the server refuses to start BYOK without it and shows *"Secure key exchange is not configured on the server."*
 
 ### Local development
 
@@ -190,21 +246,28 @@ Get a free API key at [dev.meta.ai](https://dev.meta.ai).
 git clone https://github.com/rockeykotwal/backend-friend
 cd backend-friend
 npm install
-cp .env.example .env        # add your META_MODEL_API_KEY
+cp .env.example .env        # optionally add BYOK_PRIVATE_KEY, META_MODEL_API_KEY
 npm run dev                 # Vite on :5173, Express API on :3000
 ```
+
+Open the app, choose a provider in the API key bar and paste your key.
 
 ### Testing
 
 ```bash
 # Unit tests — fast, no API calls, safe to run anytime
+# Includes end-to-end tests of browser key encryption → server decryption
 npm test
 
-# API contract tests — fires real requests, uses Meta API credits
-# Requires the server running in a separate terminal first
+# Lint
+npm run lint
+
+# API contract tests — fires real requests against a running server
 npm run dev:api       # terminal 1
 npm run test:contract # terminal 2
 ```
+
+> **Note:** The contract tests don't send an API key yet, so since bring-your-own-key they get `401` responses. They need updating to send an encrypted key before they're useful again.
 
 ### Production (any Node.js host)
 
@@ -213,7 +276,7 @@ npm run build               # builds React app into dist/
 npm start                   # Express serves API + dist/ on PORT (default 3000)
 ```
 
-Set `NODE_ENV=production` and `PORT` as needed.
+Set `NODE_ENV=production`, `PORT` and `BYOK_PRIVATE_KEY` (plus `META_MODEL_API_KEY` for voice and diagrams).
 
 ### Deploy to Vercel
 
@@ -222,7 +285,7 @@ npm i -g vercel
 vercel
 ```
 
-Set `META_MODEL_API_KEY` in your Vercel project environment variables. Vercel serves the frontend from CDN and routes `/api/*` to Express serverless — no other config needed.
+In your Vercel project → Settings → Environment Variables, add `BYOK_PRIVATE_KEY` (required) and `META_MODEL_API_KEY` (for voice and diagrams) for **both Production and Preview**, then redeploy. Vercel serves the frontend from CDN and routes `/api/*` to Express serverless — no other config needed.
 
 ---
 
@@ -231,7 +294,7 @@ Set `META_MODEL_API_KEY` in your Vercel project environment variables. Vercel se
 Backend Friend has two layers of abuse protection built in, both configurable from a single file (`server/config/limits.ts`):
 
 **Layer 1 — Request size cap**
-All incoming JSON payloads are capped at 50kb before they reach the model. Oversized requests are rejected immediately.
+Incoming JSON payloads are capped before they reach the model — 50kb for most endpoints, 500kb for folder scans, 3mb for voice audio. Oversized requests are rejected immediately.
 
 **Layer 2 — Per-IP rate limits (15-minute rolling window)**
 
@@ -242,6 +305,7 @@ All incoming JSON payloads are capped at 50kb before they reach the model. Overs
 | `POST /api/github` | 5 req / 15 min | Downloads repo files + model call |
 | `POST /api/agent` | 5 req / 15 min | Same cost as GitHub scan |
 | `POST /api/transcribe` | 20 req / 15 min | Lighter — short audio clips only |
+| `POST /api/followup` | 30 req / 15 min | Short targeted model calls |
 
 To adjust any limit, edit the constants in `server/config/limits.ts` — no other file needs changing.
 
@@ -252,7 +316,7 @@ A third layer using Cloudflare Turnstile (invisible bot challenge at the network
 ## Roadmap
 
 - **GitHub Action** — drop a single workflow file into any repo; the action scans only the changed files in a PR and posts findings as an inline comment, optionally failing the check at a severity threshold
-- **User's Meta Model API Key** – Users can provide their own Meta API key to track usage directly against their account. The API key is used only at runtime and is never stored on our servers, ensuring that all usage is billed and tracked by the user's Meta account.
+- **Bring-your-own-key for voice and diagrams** — run voice input and the execution plan image on the user's own key too, where their provider supports it
 - **`npx backend-friend` CLI** — scan a local folder or single file from the terminal; pipe into pre-commit / pre-push hooks to block CRITICAL findings before they reach production
 - **Cloudflare Turnstile** — invisible bot challenge at the network edge, on top of the existing rate limiting layers
 - **Phase 2 databases** — Redis cache misuse, Elasticsearch unbounded queries, Firebase/Firestore, and vector databases (Pinecone, Weaviate, Qdrant, Chroma)
