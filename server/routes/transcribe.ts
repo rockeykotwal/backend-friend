@@ -1,15 +1,25 @@
 import type { Request, Response } from 'express'
+import { META_BASE_URL, META_VOICE_MODEL } from '../providers/index.js'
+import { resolveMetaKey, keyErrorResponse } from '../utils/resolveClient.js'
 
-const TRANSCRIBE_URL = 'https://api.meta.ai/v1/asr/transcribe'
+const TRANSCRIBE_URL = `${META_BASE_URL}/asr/transcribe`
 
 export async function transcribeHandler(req: Request, res: Response) {
   const { audio } = req.body as { audio: string }
   if (!audio) return res.status(400).json({ error: 'audio (base64) is required' })
 
+  let apiKey: string
+  try {
+    apiKey = resolveMetaKey(req.body as Record<string, unknown>, 'Voice input')
+  } catch (err) {
+    const { status, error } = keyErrorResponse(err)
+    return res.status(status).json({ text: '', error })
+  }
+
   try {
     const audioBlob = new Blob([Buffer.from(audio, 'base64')], { type: 'audio/wav' })
     const requestBlob = new Blob(
-      [JSON.stringify({ model: 'muse-voice-transcribe-1.0', audioEncoding: 'WAV', mode: 'PUSH_TO_TALK' })],
+      [JSON.stringify({ model: META_VOICE_MODEL, audioEncoding: 'WAV', mode: 'PUSH_TO_TALK' })],
       { type: 'application/json' }
     )
 
@@ -20,7 +30,7 @@ export async function transcribeHandler(req: Request, res: Response) {
     const response = await fetch(TRANSCRIBE_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.META_MODEL_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json'
       },
       body: formData

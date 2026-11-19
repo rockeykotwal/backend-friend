@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react'
 import { analytics } from '../utils/analytics'
+import { useApiKey, isMetaProvider } from '../contexts/ApiKeyContext'
+import { encryptApiKey } from '../utils/crypto'
 import './VoiceInput.css'
 
 interface Props {
@@ -57,6 +59,7 @@ function toBase64(buf: ArrayBuffer): string {
 }
 
 export default function VoiceInput({ onTranscript, disabled = false, hideHint = false, onRecordingChange }: Props) {
+  const { apiKey, provider } = useApiKey()
   const [recording, setRecording] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -120,13 +123,16 @@ export default function VoiceInput({ onTranscript, disabled = false, hideHint = 
     const audio = toBase64(encodeWav(combined, sampleRate))
 
     try {
+      // Muse Voice runs on the user's own Meta key
+      const { encryptedKey } = await encryptApiKey(apiKey.trim())
       const res = await fetch('/api/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio })
+        body: JSON.stringify({ audio, encryptedKey, provider })
       })
       const { text, error: apiError } = await res.json()
-      if (apiError) setError('Transcription failed')
+      // Key problems (4xx) get the server's message; provider-side failures stay generic
+      if (apiError) setError(res.status >= 400 && res.status < 500 ? apiError : 'Transcription failed')
       else if (text) { onTranscript(' ' + text); analytics.voiceTranscribed() }
     } catch {
       setError('Transcription failed')
@@ -141,6 +147,10 @@ export default function VoiceInput({ onTranscript, disabled = false, hideHint = 
     else start()
   }
 
+  // Muse Voice is Meta-only — hide the mic for other providers, disable it until a key is entered
+  if (!isMetaProvider(provider)) return null
+  const noKey = !apiKey.trim()
+
   return (
     <span className={`voice-wrap${disabled ? ' voice-disabled' : ''}`}>
       {!hideHint && !recording && !loading && !error && (
@@ -149,8 +159,8 @@ export default function VoiceInput({ onTranscript, disabled = false, hideHint = 
       <button
         className={`voice-btn${recording ? ' recording' : ''}${loading ? ' transcribing' : ''}`}
         onClick={toggle}
-        disabled={loading || disabled}
-        title="Describe your query by voice — Muse Voice Transcribe converts it to text"
+        disabled={loading || disabled || noKey}
+        title={noKey ? 'Add your Meta API key to use voice input' : 'Describe your query by voice — Muse Voice Transcribe converts it to text'}
       >
         {loading ? (
           <>
