@@ -38,7 +38,7 @@ export function decryptApiKey(sessionToken: string, encryptedKeyB64: string): st
   store.delete(sessionToken) // single-use: private key gone after first decrypt
   const encrypted = Buffer.from(encryptedKeyB64, 'base64')
   const decrypted = privateDecrypt(
-    { key: entry.privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING },
+    { key: entry.privateKey, padding: constants.RSA_PKCS1_OAEP_PADDING, oaepHash: 'sha256' },
     encrypted
   )
   return decrypted.toString('utf8')
