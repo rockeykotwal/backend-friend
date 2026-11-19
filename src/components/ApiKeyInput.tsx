@@ -46,7 +46,7 @@ export default function ApiKeyInput({ apiKey, setApiKey, provider, setProvider }
         <input
           className="api-key-input"
           type={show ? 'text' : 'password'}
-          placeholder={`${PROVIDER_PLACEHOLDERS[provider]} (optional — uses our shared key if blank)`}
+          placeholder={PROVIDER_PLACEHOLDERS[provider]}
           value={apiKey}
           onChange={e => setApiKey(e.target.value)}
           autoComplete="off"
@@ -63,9 +63,14 @@ export default function ApiKeyInput({ apiKey, setApiKey, provider, setProvider }
       </div>
 
       {hasKey
-        ? <span className="api-key-status api-key-status--own">Your key · encrypted in browser</span>
+        ? <span className="api-key-status api-key-status--own">🔒 Your key · encrypted</span>
         : <span className="api-key-status">Paste your key to get started</span>
       }
+
+      <p className="api-key-note">
+        🔒 Your key is encrypted in your browser before it's sent, used only for your request to {PROVIDER_LABELS[provider]},
+        and never stored or logged. It's cleared when you refresh or close this page.
+      </p>
     </div>
   )
 }

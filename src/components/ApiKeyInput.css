@@ -92,7 +92,19 @@
   color: var(--accent, #7c5ff0);
 }
 
+.api-key-note {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted, #888);
+}
+
 /* Light theme overrides */
+[data-theme="light"] .api-key-note {
+  color: #666;
+}
+
 [data-theme="light"] .api-key-provider,
 [data-theme="light"] .api-key-field {
   background: #f5f5f5;
